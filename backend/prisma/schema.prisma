@@ -1,0 +1,439 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  uuid                   String          @id @default(uuid()) @db.Uuid
+  supabaseAuthId         String?         @unique @map("supabase_auth_id") @db.Uuid
+  username               String          @unique @db.VarChar(50)
+  email                  String          @unique @db.VarChar(255)
+  password               String          @db.VarChar(255)
+  fullName               String          @default("") @map("full_name") @db.VarChar(100)
+  bio                    String?
+  avatar                 String?
+  coverPhoto             String?         @map("cover_photo")
+  website                String?         @map("website") @db.VarChar(255)
+  location               String?         @map("location") @db.VarChar(100)
+  systemLocation         String?         @map("system_location") @db.VarChar(100)
+  isVerified             Boolean         @default(false) @map("is_verified")
+  isAdmin                Boolean         @default(false) @map("is_admin")
+  role                   String          @default("user") @map("role") @db.VarChar(50)
+  status                 UserStatus      @default(ACTIVE)
+  emailVerified          Boolean         @default(false) @map("is_email_verified")
+  lastLogin              DateTime?       @map("last_login")
+  isPrivate              Boolean         @default(false) @map("is_private")
+  pronouns               String?         @db.VarChar(50)
+  professionalCategory   String?         @map("professional_category") @db.VarChar(100)
+  headline               String?         @db.VarChar(255)
+  company                String?         @db.VarChar(100)
+  githubHandle           String?         @map("github_handle") @db.VarChar(100)
+  twitterHandle          String?         @map("twitter_handle") @db.VarChar(100)
+  instagramHandle        String?         @map("instagram_handle") @db.VarChar(100)
+  facebookHandle         String?         @map("facebook_handle") @db.VarChar(100)
+  linkedinHandle         String?         @map("linkedin_handle") @db.VarChar(100)
+  birthday               DateTime?       @map("birthday")
+  birthdayPrivacy        String          @default("PUBLIC") @map("birthday_privacy")
+  socialLinks            Json            @default("{}") @map("social_links")
+  skills                 Json            @default("[]") @map("skills")
+  is3dEnabled            Boolean         @default(false) @map("is_3d_enabled")
+  isBetaTester           Boolean         @default(false) @map("is_beta_tester")
+  language               String          @default("vn") @map("language") @db.VarChar(10)
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
+  deletedAt              DateTime?       @map("deleted_at")
+  credentialResetToken   String?         @map("credential_reset_token") @db.VarChar(100)
+  credentialResetExpires DateTime?       @map("credential_reset_expires")
+  bookmarks              Bookmark[]
+  following              Follow[]        @relation("Follower")
+  followers              Follow[]        @relation("Following")
+  likes                  Like[]
+  loginHistories         LoginHistory[]
+  plugins                Plugin[]
+  pollVotes              PollVote[]
+  mentions               PostMention[]
+  posts                  Post[]
+  reactions              Reaction[]
+  reposts                Repost[]
+  algorithms             UserAlgorithm[]
+
+  @@index([username])
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@index([role])
+  @@map("users")
+}
+
+model Follow {
+  uuid        String   @id @default(uuid()) @db.Uuid
+  followerId  String   @map("follower_id") @db.Uuid
+  followingId String   @map("following_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  follower    User     @relation("Follower", fields: [followerId], references: [uuid], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [uuid], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Post {
+  uuid           String        @id @default(uuid()) @db.Uuid
+  userId         String        @map("user_id") @db.Uuid
+  type           PostType      @default(POST) @map("type")
+  content        String?       @map("content")
+  parentId       String?       @map("parent_id") @db.Uuid
+  originalPostId String?       @map("original_post_id") @db.Uuid
+  visibility     Visibility    @default(PUBLIC) @map("visibility")
+  status         PostStatus    @default(PUBLISHED) @map("status")
+  topic          String?       @map("topic") @db.VarChar(100)
+  location       String?       @map("location") @db.VarChar(100)
+  isEdited       Boolean       @default(false) @map("is_edited")
+  editedAt       DateTime?     @map("edited_at")
+  isEphemeral    Boolean       @default(false) @map("is_ephemeral")
+  expiresAt      DateTime?     @map("expires_at")
+  trendingScore  Float         @default(0) @map("trending_score")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
+  topicId        String?       @map("topic_id") @db.Uuid
+  threadIndex    Int           @default(1) @map("thread_index")
+  threadTotal    Int           @default(1) @map("thread_total")
+  bookmarks      Bookmark[]
+  likes          Like[]
+  poll           Poll?
+  hashtags       PostHashtag[]
+  media          PostMedia[]
+  mentions       PostMention[]
+  stats          PostStat?
+  originalPost   Post?         @relation("QuoteRelation", fields: [originalPostId], references: [uuid])
+  quotes         Post[]        @relation("QuoteRelation")
+  parent         Post?         @relation("PostHierarchy", fields: [parentId], references: [uuid])
+  children       Post[]        @relation("PostHierarchy")
+  topicRelation  Topic?        @relation(fields: [topicId], references: [uuid])
+  user           User          @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+  reactions      Reaction[]
+  reposts        Repost[]
+
+  @@index([userId, createdAt])
+  @@index([parentId])
+  @@index([originalPostId])
+  @@index([type, status])
+  @@index([topicId])
+  @@index([deletedAt])
+  @@index([createdAt(sort: Desc)])
+  @@index([visibility])
+  @@index([topic])
+  @@map("posts")
+}
+
+model PostMedia {
+  uuid         String    @id @default(uuid()) @db.Uuid
+  postId       String    @map("post_id") @db.Uuid
+  type         MediaType @default(IMAGE)
+  url          String
+  thumbnailUrl String?   @map("thumbnail_url")
+  blurHash     String?   @map("blur_hash") @db.VarChar(100)
+  mimeType     String?   @map("mime_type") @db.VarChar(100)
+  size         Int?      @map("size")
+  width        Int?      @map("width")
+  height       Int?      @map("height")
+  duration     Float?    @map("duration")
+  displayOrder Int       @default(0) @map("display_order")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  post         Post      @relation(fields: [postId], references: [uuid], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_media")
+}
+
+model PostStat {
+  postId        String   @id @map("post_id") @db.Uuid
+  likeCount     Int      @default(0) @map("like_count")
+  repostCount   Int      @default(0) @map("repost_count")
+  quoteCount    Int      @default(0) @map("quote_count")
+  replyCount    Int      @default(0) @map("reply_count")
+  bookmarkCount Int      @default(0) @map("bookmark_count")
+  viewCount     Int      @default(0) @map("view_count")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  post          Post     @relation(fields: [postId], references: [uuid], onDelete: Cascade)
+
+  @@map("post_stats")
+}
+
+model Like {
+  uuid      String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  signature String?
+  createdAt DateTime @default(now()) @map("created_at")
+  post      Post     @relation(fields: [postId], references: [uuid], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+  @@index([createdAt])
+  @@map("likes")
+}
+
+model Reaction {
+  uuid      String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  emoji     String   @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+  post      Post     @relation(fields: [postId], references: [uuid], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
+  @@unique([userId, postId, emoji])
+  @@index([userId])
+  @@index([postId])
+  @@map("reactions")
+}
+
+model Bookmark {
+  uuid      String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  post      Post     @relation(fields: [postId], references: [uuid], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+  @@map("bookmarks")
+}
+
+model Repost {
+  uuid      String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  signature String?
+  createdAt DateTime @default(now()) @map("created_at")
+  post      Post     @relation(fields: [postId], references: [uuid], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+  @@index([createdAt])
+  @@map("reposts")
+}
+
+model Hashtag {
+  uuid      String        @id @default(uuid()) @db.Uuid
+  name      String        @unique @map("name") @db.VarChar(100)
+  useCount  Int           @default(0) @map("use_count")
+  lastUsed  DateTime      @default(now()) @map("last_used")
+  createdAt DateTime      @default(now()) @map("created_at")
+  posts     PostHashtag[]
+
+  @@index([name])
+  @@map("hashtags")
+}
+
+model PostHashtag {
+  postId    String  @map("post_id") @db.Uuid
+  hashtagId String  @map("hashtag_id") @db.Uuid
+  hashtag   Hashtag @relation(fields: [hashtagId], references: [uuid], onDelete: Cascade)
+  post      Post    @relation(fields: [postId], references: [uuid], onDelete: Cascade)
+
+  @@id([postId, hashtagId])
+  @@index([hashtagId])
+  @@map("post_hashtags")
+}
+
+model PostMention {
+  postId String @map("post_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  post   Post   @relation(fields: [postId], references: [uuid], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@map("post_mentions")
+}
+
+model Topic {
+  uuid      String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @map("name") @db.VarChar(100)
+  slug      String   @unique @map("slug") @db.VarChar(100)
+  postCount Int      @default(0) @map("post_count")
+  createdAt DateTime @default(now()) @map("created_at")
+  posts     Post[]
+
+  @@map("topics")
+}
+
+model Poll {
+  uuid      String       @id @default(uuid()) @db.Uuid
+  postId    String       @unique @map("post_id") @db.Uuid
+  question  String?      @db.VarChar(255)
+  expiresAt DateTime     @map("expires_at")
+  createdAt DateTime     @default(now()) @map("created_at")
+  options   PollOption[]
+  votes     PollVote[]
+  post      Post         @relation(fields: [postId], references: [uuid], onDelete: Cascade)
+
+  @@map("polls")
+}
+
+model PollOption {
+  uuid        String     @id @default(uuid()) @db.Uuid
+  pollId      String     @map("poll_id") @db.Uuid
+  optionText  String     @map("option_text") @db.VarChar(255)
+  optionOrder Int        @default(0) @map("option_order")
+  voteCount   Int        @default(0) @map("vote_count")
+  poll        Poll       @relation(fields: [pollId], references: [uuid], onDelete: Cascade)
+  votes       PollVote[]
+
+  @@map("poll_options")
+}
+
+model PollVote {
+  userId     String     @map("user_id") @db.Uuid
+  pollId     String     @map("poll_id") @db.Uuid
+  optionUuid String     @map("option_id") @db.Uuid
+  createdAt  DateTime   @default(now()) @map("created_at")
+  option     PollOption @relation(fields: [optionUuid], references: [uuid], onDelete: Cascade)
+  poll       Poll       @relation(fields: [pollId], references: [uuid], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
+  @@id([userId, pollId])
+  @@map("poll_votes")
+}
+
+model UserAlgorithm {
+  uuid             String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  name             String    @map("name") @db.VarChar(100)
+  shortDescription String?   @map("short_description") @db.VarChar(255)
+  description      String?   @map("description")
+  weights          Json      @default("{}") @map("weights")
+  pipeline         Json      @default("[]") @map("pipeline")
+  isActive         Boolean   @default(false) @map("is_active")
+  isPublic         Boolean   @default(false) @map("is_public")
+  isPinned         Boolean   @default(false) @map("is_pinned")
+  pinOrder         Int       @default(0) @map("pin_order")
+  imageUrl         String?   @map("image_url") @db.VarChar(255)
+  version          String    @default("1.0.0") @db.VarChar(20)
+  installedFromId  String?   @map("installed_from_id") @db.Uuid
+  usageCount       Int       @default(0) @map("usage_count")
+  rating           Decimal   @default(0.00) @map("rating") @db.Decimal(3, 2)
+  tags             Json      @default("[]") @map("tags")
+  changelog        Json      @default("[]") @map("changelog")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  user             User      @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_algorithms")
+}
+
+model Plugin {
+  uuid           String          @id @default(uuid()) @db.Uuid
+  authorId       String          @map("author_id") @db.Uuid
+  name           String          @map("name") @db.VarChar(255)
+  description    String?         @map("description")
+  code           String          @map("code")
+  category       String          @default("General") @map("category") @db.VarChar(100)
+  isPublic       Boolean         @default(false) @map("is_public")
+  version        String          @default("1.0.0") @map("version") @db.VarChar(20)
+  blocksMetadata Json            @default("[]") @map("blocks_metadata")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  deletedAt      DateTime?       @map("deleted_at")
+  categoryId     String?         @map("category_id") @db.Uuid
+  tags           String[]        @default([])
+  author         User            @relation(fields: [authorId], references: [uuid], onDelete: Cascade)
+  categoryRel    PluginCategory? @relation(fields: [categoryId], references: [uuid])
+
+  @@map("plugins")
+}
+
+model PluginCategory {
+  uuid        String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @map("name") @db.VarChar(100)
+  slug        String   @unique @db.VarChar(100)
+  description String?  @map("description")
+  isSystem    Boolean  @default(false) @map("is_system")
+  usageCount  Int      @default(0) @map("usage_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  plugins     Plugin[]
+
+  @@map("plugin_categories")
+}
+
+model LoginHistory {
+  uuid          String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  sessionId     String?  @map("session_id") @db.VarChar(100)
+  ipAddress     String?  @map("ip_address") @db.VarChar(50)
+  userAgent     String?  @map("user_agent")
+  device        String?  @db.VarChar(100)
+  location      String?  @db.VarChar(100)
+  isSuccessful  Boolean  @default(true) @map("is_successful")
+  failureReason String?  @map("failure_reason")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  lastActiveAt  DateTime @default(now()) @map("last_active_at")
+  user          User     @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@map("login_histories")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum PostType {
+  POST
+  QUOTE
+  COMMENT
+  THREAD
+}
+
+enum Visibility {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
+}
+
+enum PostStatus {
+  PUBLISHED
+  PENDING
+  REJECTED
+  ARCHIVED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  GIF
+  AUDIO
+}
+
+model Waitlist {
+  id        Int      @id @default(autoincrement())
+  fullName  String
+  email     String   @unique
+  message   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("waitlist")
+}

@@ -1,0 +1,15 @@
+{
+  "verification": {
+    "subject": "Xác thực tài khoản Arteo",
+    "title": "Chào mừng bạn đến với Arteo",
+    "message": "Đây là mã xác thực OTP của bạn để hoàn tất đăng ký:",
+    "footer": "Mã này có hiệu lực trong 5 phút. Vui lòng không chia sẻ mã này với bất kỳ ai."
+  },
+  "recovery": {
+    "subject": "Khôi phục mật khẩu Arteo",
+    "title": "Đặt lại mật khẩu của bạn",
+    "message": "Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản Arteo của bạn. Nhấn vào nút bên dưới để tiếp tục:",
+    "button": "Đặt lại mật khẩu",
+    "footer": "Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này."
+  }
+}

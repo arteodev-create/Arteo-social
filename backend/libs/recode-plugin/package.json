@@ -1,0 +1,21 @@
+{
+  "name": "@arteoapp/recode-plugin",
+  "version": "4.0.0",
+  "description": "Re-Code Plugin DSL runtime used by Arteo backend algorithms.",
+  "main": "src/index.js",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "recode",
+    "dsl",
+    "algorithm",
+    "arteo"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

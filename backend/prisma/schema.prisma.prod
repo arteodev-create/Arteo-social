@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                         BigInt         @id @default(autoincrement())
+  username                   String         @unique
+  email                      String         @unique
+  password                   String
+  fullName                   String?        @map("full_name")
+  avatar                     String?
+  coverPhoto                 String?        @map("cover_photo")
+  bio                        String?
+  website                    String?
+  location                   String?
+  isVerified                 Boolean        @default(false) @map("is_verified")
+  isEmailVerified            Boolean        @default(false) @map("is_email_verified")
+  emailVerificationToken     String?        @map("email_verification_token")
+  emailVerificationExpires   DateTime?      @map("email_verification_expires")
+  passwordResetToken         String?        @map("password_reset_token")
+  passwordResetExpires       DateTime?      @map("password_reset_expires")
+  lastLogin                  DateTime?      @map("last_login")
+  createdAt                  DateTime       @default(now()) @map("created_at")
+  updatedAt                  DateTime       @updatedAt @map("updated_at")
+  posts                      Post[]
+  comments                   Comment[]
+  interactions               Interaction[]
+  followers                  Follow[]       @relation("following")
+  following                  Follow[]       @relation("follower")
+  loginHistories             LoginHistory[]
+
+  @@map("users")
+}
+
+model Post {
+  id           BigInt        @id @default(autoincrement())
+  userId       BigInt        @map("user_id")
+  content      String?
+  mediaUrls    String[]      @map("media_urls")
+  mediaType    String?       @map("media_type")
+  status       String        @default("published")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments     Comment[]
+  interactions Interaction[]
+
+  @@map("posts")
+}
+
+model Comment {
+  id        BigInt   @id @default(autoincrement())
+  postId    BigInt   @map("post_id")
+  userId    BigInt   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model Interaction {
+  id        BigInt   @id @default(autoincrement())
+  postId    BigInt   @map("post_id")
+  userId    BigInt   @map("user_id")
+  type      String   @default("like")
+  createdAt DateTime @default(now()) @map("created_at")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId, type])
+  @@map("interactions")
+}
+
+model Follow {
+  followerId  BigInt   @map("follower_id")
+  followingId BigInt   @map("following_id")
+  status      String   @default("ACCEPTED")
+  createdAt   DateTime @default(now()) @map("created_at")
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@map("follows")
+}
+
+model LoginHistory {
+  id           BigInt   @id @default(autoincrement())
+  userId       BigInt?  @map("user_id")
+  ip           String?
+  userAgent    String?  @map("user_agent")
+  device       String?
+  location     String?
+  isSuccessful Boolean  @default(true) @map("is_successful")
+  failureReason String? @map("failure_reason")
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("login_history")
+}
+

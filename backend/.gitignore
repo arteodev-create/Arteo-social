@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+crash.log
+
+# Debug & test scripts
+debug-*.js
+test-*.js
+seed_elon.js
+
+# DNS / credentials (lưu ngoài repo)
+dns_*.txt
+raw_dns_*.txt
+*.json.key
+
+# OS
+.DS_Store
+Thumbs.db
+
+/src/generated/prisma
