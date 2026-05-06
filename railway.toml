@@ -3,7 +3,6 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "node /app/backend/Server.js"
 healthcheckPath = "/"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
