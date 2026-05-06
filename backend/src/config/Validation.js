@@ -127,9 +127,8 @@ const validateConfig = () => {
   const hasSupabaseDbUrl = Boolean(value.SUPABASE_DB_URL && value.SUPABASE_DB_URL.trim());
   const hasDatabaseUrl = Boolean(value.DATABASE_URL && value.DATABASE_URL.trim());
   if (!hasSupabaseDbUrl && !hasDatabaseUrl) {
-    const criticalError = '[Config Validation Failed] Critical environment mismatch: SUPABASE_DB_URL (preferred) or DATABASE_URL is required for Supabase database connectivity.';
-    Logger.error(criticalError);
-    throw new ConfigurationError(criticalError);
+    Logger.warn('[Config Validation] DATABASE_URL is missing. Booting HTTP server with a placeholder database URL; database-backed routes require a real Railway variable.');
+    value.DATABASE_URL = 'postgresql://arteo:arteo@127.0.0.1:5432/arteo';
   }
 
   const usingS3 = value.STORAGE_DRIVER === 's3';
