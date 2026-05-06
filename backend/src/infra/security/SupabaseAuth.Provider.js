@@ -25,7 +25,7 @@ class SupabaseAuthProvider {
 
         const clientOptions = {
             auth: { persistSession: false, autoRefreshToken: false },
-            global: { WebSocket }
+            realtime: { transport: WebSocket }
         };
 
         this.publicClient = this.enabled
