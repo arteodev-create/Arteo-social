@@ -35,7 +35,7 @@ const shutdown = (signal) => {
     }, 10000).unref();
 };
 
-server.listen(port, () => {
+server.listen(port, '0.0.0.0', () => {
     Logger.info(`Arteo backend listening on port ${port}`, {
         node: config.infra.nodeName,
         env: config.infra.env,

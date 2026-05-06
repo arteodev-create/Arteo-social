@@ -46,6 +46,10 @@ const createCorsOptions = () => ({
 });
 
 const registerObservabilityRoutes = (app) => {
+    app.get('/', (req, res) => {
+        res.status(200).json({ service: 'arteo-backend', status: 'alive' });
+    });
+
     app.get('/api/live', (req, res) => {
         res.success({ probe: 'live', status: 'alive', uptime: process.uptime(), observedAt: new Date().toISOString() });
     });
