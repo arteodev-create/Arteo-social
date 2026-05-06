@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const WebSocket = require('ws');
 const config = require('../../config/Registry');
 const Logger = require('../logging/Logger.Service');
 const { AppError, AuthorizationError, ConflictError, ConfigurationError, ErrorCodes } = require('../../core/Errors');
@@ -22,16 +23,17 @@ class SupabaseAuthProvider {
 
         this.enabled = Boolean(!disabledForTest && !explicitlyDisabled && hasCredentials);
 
+        const clientOptions = {
+            auth: { persistSession: false, autoRefreshToken: false },
+            global: { WebSocket }
+        };
+
         this.publicClient = this.enabled
-            ? createClient(supabaseUrl, supabaseAnonKey, {
-                auth: { persistSession: false, autoRefreshToken: false }
-            })
+            ? createClient(supabaseUrl, supabaseAnonKey, clientOptions)
             : null;
 
         this.adminClient = this.enabled
-            ? createClient(supabaseUrl, supabaseServiceRoleKey, {
-                auth: { persistSession: false, autoRefreshToken: false }
-            })
+            ? createClient(supabaseUrl, supabaseServiceRoleKey, clientOptions)
             : null;
 
         if (!this.enabled) {
