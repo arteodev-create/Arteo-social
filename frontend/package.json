@@ -1,0 +1,241 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "homepage": "/",
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@giphy/js-fetch-api": "^5.7.0",
+    "@giphy/react-components": "^10.1.1",
+    "@marsidev/react-turnstile": "^1.4.1",
+    "@monaco-editor/react": "^4.7.0",
+    "@noble/ed25519": "^3.1.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "@radix-ui/react-avatar": "^1.1.11",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-popover": "^1.1.15",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@tanstack/react-query": "^5.90.20",
+    "@tanstack/react-table": "^8.21.3",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/gsap": "^1.20.2",
+    "@types/jest": "^27.5.2",
+    "@types/leaflet": "^1.9.21",
+    "@types/node": "^16.18.126",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/react-helmet-async": "^1.0.1",
+    "@types/react-router-dom": "^5.3.3",
+    "@types/three": "^0.182.0",
+    "@xyflow/react": "^12.10.2",
+    "axios": "^1.13.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^2.30.0",
+    "emoji-picker-react": "^4.16.1",
+    "firebase": "^12.8.0",
+    "framer-motion": "^12.29.2",
+    "gsap": "^3.14.2",
+    "gun": "^0.2020.1241",
+    "html2pdf.js": "^0.14.0",
+    "i18next": "^25.7.4",
+    "i18next-http-backend": "^3.0.2",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.562.0",
+    "openai": "^6.16.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-helmet-async": "^2.0.5",
+    "react-i18next": "^16.5.3",
+    "react-intersection-observer": "^10.0.2",
+    "react-leaflet": "^5.0.0",
+    "react-router-dom": "^7.12.0",
+    "react-scripts": "5.0.1",
+    "react-virtuoso": "^4.18.1",
+    "slate": "^0.123.0",
+    "slate-dom": "^0.123.0",
+    "slate-history": "^0.113.1",
+    "slate-react": "^0.123.0",
+    "socket.io-client": "^4.8.3",
+    "sonner": "^2.0.7",
+    "styled-components": "^6.3.8",
+    "tailwind-merge": "^3.5.0",
+    "three": "^0.182.0",
+    "twemoji": "^14.0.2",
+    "typescript": "^4.9.5",
+    "web-vitals": "^2.1.4",
+    "zod": "^3.23.8",
+    "zustand": "^5.0.10"
+  },
+  "scripts": {
+    "start": "craco start",
+    "build": "craco build",
+    "check": "npm run test:ci && npm run check:architecture && npm run build && npm run check:bundle",
+    "check:architecture": "node scripts/check-architecture-boundaries.js",
+    "check:bundle": "node scripts/check-bundle-budget.js",
+    "test": "craco test",
+    "test:ci": "craco test --watchAll=false",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "src/shared/**/*.{ts,tsx,js,jsx}"
+        ],
+        "rules": {
+          "no-restricted-imports": [
+            "error",
+            {
+              "patterns": [
+                {
+                  "group": [
+                    "@app/*",
+                    "@pages",
+                    "@pages/*",
+                    "@widgets/*",
+                    "@features/*",
+                    "@entities/*",
+                    "@components/*",
+                    "@stores/*",
+                    "@hooks/*"
+                  ],
+                  "message": "Shared code must stay product-agnostic and cannot import higher layers."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "files": [
+          "src/entities/**/*.{ts,tsx,js,jsx}"
+        ],
+        "rules": {
+          "no-restricted-imports": [
+            "error",
+            {
+              "patterns": [
+                {
+                  "group": [
+                    "@features/*",
+                    "@widgets/*",
+                    "@pages",
+                    "@components/*",
+                    "@hooks/*",
+                    "@utils/*",
+                    "@pages/*"
+                  ],
+                  "message": "Entities should depend on entities/shared facades instead of legacy aliases."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "files": [
+          "src/features/**/*.{ts,tsx,js,jsx}"
+        ],
+        "rules": {
+          "no-restricted-imports": [
+            "error",
+            {
+              "patterns": [
+                {
+                  "group": [
+                    "@widgets/*",
+                    "@pages",
+                    "@components/ui",
+                    "@components/ui/*",
+                    "@components/*",
+                    "@hooks/*",
+                    "@utils/*"
+                  ],
+                  "message": "Features can only depend on features/entities/shared. Use domain model exports, @entities/session/model, @shared/ui, and @shared/lib instead of legacy aliases."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "files": [
+          "src/widgets/**/*.{ts,tsx,js,jsx}"
+        ],
+        "rules": {
+          "no-restricted-imports": [
+            "error",
+            {
+              "patterns": [
+                {
+                  "group": [
+                    "@pages",
+                    "@components/*",
+                    "@hooks/*",
+                    "@utils/*",
+                    "@pages/*"
+                  ],
+                  "message": "Widgets should compose domains/shared through public facades instead of legacy aliases."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "files": [
+          "src/app/**/*.{ts,tsx,js,jsx}"
+        ],
+        "rules": {
+          "no-restricted-imports": [
+            "error",
+            {
+              "patterns": [
+                {
+                  "group": [
+                    "@components/*",
+                    "@hooks/*",
+                    "@utils/*",
+                    "@pages",
+                    "@pages/*"
+                  ],
+                  "message": "App layer should use domain facades, @shared/ui, and @shared/lib instead of legacy aliases."
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "@types/twemoji": "^13.1.1",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19"
+  }
+}

@@ -1,0 +1,41 @@
+export interface User {
+  uuid: string;
+  username: string;
+  email: string;
+  fullName: string;
+  bio?: string;
+  avatar?: string;
+  coverPhoto?: string;
+  website?: string;
+  isVerified: boolean;
+  isAdmin: boolean;
+  isEmailVerified: boolean;
+  language?: string;
+  isPrivate: boolean;
+  birthday?: string;
+  onlineStatus: string;
+  pronouns?: string;
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    github?: string;
+    linkedin?: string;
+  };
+  location?: string;
+  headline?: string;
+  company?: string;
+  professionalCategory?: string;
+  professionalMode?: boolean;
+  skills?: string[];
+  verificationType?: 'blue' | 'gold' | 'white' | 'registry';
+  followersCount?: number;
+  followingCount?: number;
+  postsCount?: number;
+  isFollowing?: boolean;
+  followerAvatars?: string[];
+  nominationCount?: number;
+  affiliateId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}

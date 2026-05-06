@@ -1,0 +1,651 @@
+{
+  "titles": {
+    "select": "Select",
+    "explore": "Explore",
+    "recovery": "Recovery",
+    "verification": "Verification",
+    "deploy": "Deploy",
+    "about": "Official Arteo Newsroom • Arteo Social & App",
+    "home": "Home",
+    "search": "Search",
+    "settings": "Settings",
+    "profile": "Profile",
+    "login": "Login",
+    "register": "Register",
+    "notifications": "Notifications",
+    "messages": "Messages",
+    "documentation": "Documentation",
+    "event_title": "Event",
+    "hot_events": "Hot Events",
+    "not_found": "Not Found",
+    "post_title": "Post",
+    "post": "Post"
+  },
+  "common": {
+    "loading": "Loading Arteo...",
+    "error": "Arteo Error",
+    "success": "Arteo Success",
+    "back": "Back",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "continue": "Continue",
+    "skip": "Skip",
+    "search": "Search Arteo...",
+    "follow": "Follow",
+    "following": "Following",
+    "unfollow": "Unfollow",
+    "followers": "Followers",
+    "posts": "Posts",
+    "media": "Media",
+    "likes": "Likes",
+    "close": "Close",
+    "done": "Done",
+    "retry": "Retry",
+    "load_more": "Load More Fragments",
+    "loading_more": "Loading more...",
+    "unavailable": "Unavailable",
+    "block": "Block",
+    "maintenance": "Maintenance",
+    "featured": "Featured",
+    "retry_now": "Retry now"
+  },
+  "landing": {
+    "hero_title": "Arteo Social Network",
+    "hero_desc": "The modular protocol for digital sovereignty and sovereign identity.",
+    "get_started": "Get Started",
+    "explore_servers": "Explore Arteo",
+    "about": "About Arteo"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "welcome": "Welcome to Arteo",
+    "username": "Username",
+    "password": "Password",
+    "forgot_password": "Forgot password?",
+    "continue": "Continue",
+    "back": "Go Back",
+    "verify": "Verify Identity",
+    "logout": "Logout",
+    "verify_identity_start": "Identify yourself in the Arteo Social",
+    "network_label": "Server",
+    "login_label": "Identity Email",
+    "dont_have_account": "New to Arteo?",
+    "register_now": "Register Identity Now",
+    "already_have_account": "Already an architect?",
+    "login_now": "Login Now",
+    "email": "Email Address",
+    "full_name": "Full Name",
+    "create_account": "Create Identity",
+    "strength_weak": "Weak",
+    "strength_fair": "Fair",
+    "strength_good": "Good",
+    "strength_strong": "Strong",
+    "placeholder_username_reg": "Choose a username",
+    "placeholder_email": "email@example.com",
+    "placeholder_password_create": "Create a password",
+    "register_final_desc": "Finish creating your Arteo identity.",
+    "recovery_label": "Account recovery",
+    "send_code": "Send code",
+    "verification_label": "Verification code",
+    "new_password_label": "New password",
+    "placeholder_password_new": "Enter a new password",
+    "reset_password_now": "Reset password",
+    "verify_sent_to": "We sent a code to {{email}}",
+    "didnt_receive_code": "Didn't receive a code?",
+    "resend_code": "Resend code",
+    "verify_now": "Verify now",
+    "community_modal": {
+      "title": "Community responsibility",
+      "description": "Help keep Arteo useful, respectful, and safe for everyone.",
+      "commitment_title": "Your commitment",
+      "commitment_desc": "Use your identity responsibly and respect other people on the network.",
+      "confirm_btn": "I agree"
+    }
+  },
+  "feed": {
+    "end_of_feed": "You have reached the end of the architectural fragments.",
+    "refresh": "Refresh Architecture",
+    "new_posts": "New Fragments Available",
+    "personal_algorithms": "Personal algorithms",
+    "create_new": "Create new",
+    "arteo_library": "Arteo library",
+    "standard_pulse": "Arteo Standard Pulse",
+    "algorithm_not_set_desc": "No algorithm is active yet.",
+    "pinned_success": "Feed pinned successfully.",
+    "pin_failed": "Unable to pin feed."
+  },
+  "newsroom": {
+    "category": "Architectural Manifesto",
+    "date": "April 30, 2026",
+    "title": "Introducing Arteo Social: The Paradigm Shift in Modular Digital Sovereignty via the Arteo App and Protocol",
+    "intro": "Today, the social internet reaches a new milestone with the launch of Arteo Social, the flagship network powered by the Arteo Protocol and the Arteo App.",
+    "key_takeaways_title": "Key Takeaways",
+    "key_takeaways_text": "Arteo represents a fundamental departure from the surveillance-based social web.",
+    "faq_title": "Frequently Asked Questions",
+    "faq": [
+      {
+        "question": "What is Arteo Social?",
+        "answer": "A modular social network built on the Arteo Protocol."
+      }
+    ],
+    "footer_note": "Arteo Social and the Arteo App are part of a single-server platform founded by Do Gia Huy.",
+    "cta_text": "Join the Arteo Revolution",
+    "pre_arteo_era_title": "Before Arteo",
+    "pre_arteo_era_text": "Social products became noisy, closed, and difficult to trust. Arteo starts from identity, ownership, and modular control.",
+    "what_is_arteo_title": "What is Arteo?",
+    "what_is_arteo_text": "Arteo is a platform for digital identity, social publishing, and programmable discovery.",
+    "what_is_arteo_social_title": "What is Arteo Social?",
+    "what_is_arteo_social_text": "Arteo Social is the social network built on top of the Arteo platform.",
+    "recode_title": "Recode",
+    "recode_text": "Recode gives creators and developers a way to shape ranking logic and product behavior through readable rules.",
+    "recode_deep_dive": "Read the technical overview",
+    "safety_title": "Safety and Trust",
+    "safety_text": "Arteo is designed around verified identity, clear permissions, and user control."
+  },
+  "post": {
+    "create": {
+      "title": "New post",
+      "placeholder": "What are you thinking?",
+      "media_limit_reached": "Maximum 4 media files."
+    },
+    "placeholder": "What are you architecting today?",
+    "publish": "Publish Fragment",
+    "visibility": "Visibility",
+    "like": "Like",
+    "comment": "Comment",
+    "share": "Share",
+    "delete_confirm": "Delete this fragment permanently?",
+    "no_posts": "No architectural fragments found.",
+    "you_reposted": "You reposted",
+    "reposted": "reposted",
+    "delete_confirm_title": "Delete this post?",
+    "delete_confirm_desc": "This post will be permanently removed from Arteo. Are you sure?",
+    "report": "Report",
+    "block_confirm_desc": "You will no longer see content from this account in your main feed.",
+    "original_content_unavailable": "Original content is unavailable.",
+    "expired": "Expired",
+    "remaining": "Remaining",
+    "unrepost": "Undo repost",
+    "repost": "Repost",
+    "quote": "Quote",
+    "link_copied": "Link copied",
+    "copy_link": "Copy link",
+    "share_via": "Share via",
+    "edit": "Edit",
+    "delete": "Delete",
+    "view_full_thread": "View full thread",
+    "hours": "hours",
+    "minutes": "minutes",
+    "repost_error": "Unable to repost",
+    "just_now": "just now",
+    "comment_error": "Unable to load comments",
+    "no_comments": "No comments yet",
+    "no_comments_desc": "Be the first to reply.",
+    "reply_placeholder": "Write a reply...",
+    "reply_submit": "Reply",
+    "not_found": "Post not found",
+    "not_found_desc": "This post may have been deleted or is no longer available.",
+    "loading": "Loading post..."
+  },
+  "profile": {
+    "edit_profile": "Edit Profile",
+    "follow": "Follow",
+    "avatar": "Avatar",
+    "bio": "Biography",
+    "website": "Website",
+    "joined": "Joined {{date}}",
+    "update_success": "Profile architecture updated.",
+    "add_bio": "Add Biography",
+    "create_post": "Create First Post",
+    "user_not_found": "The identity @{{username}} does not exist in the Arteo Social.",
+    "loading": "Arteo is loading profile...",
+    "not_found": "Identity Not Found",
+    "tabs": {
+      "posts": "Posts",
+      "replies": "Replies",
+      "media": "Media",
+      "reposts": "Reposts"
+    },
+    "stats": {
+      "posts": "Posts",
+      "following": "Following",
+      "followers": "Followers"
+    },
+    "feature_in_development": "Feature in development"
+  },
+  "settings": {
+    "account": "Account",
+    "privacy": "Privacy",
+    "security": "Security",
+    "notifications": "Notifications",
+    "theme": "Theme",
+    "language": "Language",
+    "deactivate": "Deactivate Identity",
+    "display": {
+      "theme_label": "Theme",
+      "visual_label": "Visual Preferences",
+      "visual_desc": "Fine-tune the interface for a calmer, more focused Arteo experience."
+    }
+  },
+  "search": {
+    "placeholder": "Search Arteo...",
+    "trending": "Trending Architectures",
+    "results_title": "Search Results",
+    "no_results": "No nodes or identities found.",
+    "no_results_title": "No Architectural Matches",
+    "no_results_desc": "We found nothing for \"{{query}}\". Try a different keyword.",
+    "people": "People",
+    "tab_all": "All",
+    "tab_posts": "Posts",
+    "tab_people": "People",
+    "tab_hashtags": "Hashtags",
+    "algorithms": "Algorithms",
+    "posts": "Posts",
+    "intelligence_insight": "Arteo Intelligence Insight",
+    "discover_feeds": "Discover feeds",
+    "feed_by": "by",
+    "loading_packs": "Loading starter packs...",
+    "starter_packs": "Starter packs",
+    "by": "By",
+    "open_pack": "Open pack",
+    "for_you": "For you",
+    "suggested_accounts": "Suggested accounts",
+    "interests_title": "Interests",
+    "interests_subtitle": "Topics shaping the network"
+  },
+  "notification": {
+    "title": "Notifications",
+    "empty": "No new system alerts.",
+    "liked": "liked your post",
+    "followed": "started following you",
+    "commented": "commented on your post"
+  },
+  "nav": {
+    "home": "Home",
+    "search": "Community",
+    "create": "Create",
+    "profile": "Profile",
+    "options": "Options",
+    "logout": "Logout",
+    "plugins": "Resources",
+    "algorithms": "Data",
+    "settings": "System"
+  },
+  "home": {
+    "no_algo_title": "No algorithm is active",
+    "no_algo_desc": "Choose one of the options below to start exploring your Arteo feed.",
+    "no_algo_community_title": "Community",
+    "no_algo_community_desc": "Discover top algorithms shared by the Arteo community.",
+    "no_algo_community_cta": "Explore",
+    "no_algo_create_title": "Create",
+    "no_algo_create_desc": "Build your own content distribution logic in Algorithm Studio.",
+    "no_algo_create_cta": "Start",
+    "no_algo_default_title": "Arteo Default",
+    "no_algo_default_desc": "Use the default algorithm from arteosocial.com.",
+    "no_algo_default_cta": "Activate"
+  },
+  "hot_events": {
+    "realtime_analysis": "Real-time trend analysis",
+    "discussions": "discussions",
+    "header_title": "Hot Events",
+    "hot": "Hot",
+    "syncing": "Syncing",
+    "active": "Active",
+    "empty_desc": "No active events are available right now."
+  },
+  "layout": {
+    "admin": "Admin",
+    "appearance": "Appearance",
+    "details": "Details",
+    "settings": "Settings",
+    "feed_board": "Feed board",
+    "saved": "Saved",
+    "likes": "Likes",
+    "report_issue": "Report issue",
+    "logout": "Logout",
+    "theme_mode": "Theme mode",
+    "navigation_position": "Navigation position",
+    "vertical_left": "Vertical (Left)",
+    "horizontal_top": "Horizontal (Top)",
+    "modal_size": "Modal size",
+    "standard": "Standard",
+    "fullscreen": "Fullscreen",
+    "icon_set": "Icon set",
+    "set_n": "Set {{id}}",
+    "wide_mode_title": "Wide mode experience",
+    "wide_mode_desc": "This layout is optimized for larger screens to improve visibility and workflow.",
+    "get_started": "Get started"
+  },
+  "legal": {
+    "help_center": "Help Center",
+    "using_arteo": "Using Arteo",
+    "security": "Security",
+    "rules_policies": "Rules & Policies",
+    "search_help_center": "Search Help Center",
+    "contact_us": "Contact Us",
+    "search": "Search",
+    "safety_security": "Safety & Security",
+    "terms_service": "Terms of Service",
+    "arteo_platform": "Arteo Platform",
+    "about": "About",
+    "locations": "Locations",
+    "download_app": "Download the App",
+    "accessibility": "Accessibility",
+    "your_account": "Your Account",
+    "rules": "Rules",
+    "legal": "Legal",
+    "privacy_policy": "Privacy Policy",
+    "cookie_policy": "Cookie Policy",
+    "privacy_settings": "Privacy Settings",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "cookies": "Cookies",
+    "language_english_us": "English (US)"
+  },
+  "admin_ui": {
+    "core_infra": "Core Infrastructure",
+    "total_users": "Total Users",
+    "growth_24h": "New Users (24h)",
+    "system_status": "System Status",
+    "target_node": "Target Node",
+    "node_url": "Node URL",
+    "version": "Version",
+    "online": "Online",
+    "offline": "Offline",
+    "content_moderation": "Content Moderation",
+    "content_moderation_desc": "Review and manage published content.",
+    "search_content_or_author": "Search content or author...",
+    "post_content": "Post Content",
+    "author": "Author",
+    "engagement": "Engagement",
+    "actions": "Actions",
+    "identifier": "Identifier",
+    "comments": "Comments",
+    "remove_content": "Remove Content",
+    "no_violating_content": "No violating content found.",
+    "alliance_citizens": "Alliance Citizens",
+    "user_management_desc": "Manage user roles and account status.",
+    "search_users": "Search users...",
+    "user_info": "User Info",
+    "role": "Role",
+    "status": "Status",
+    "admin": "Admin",
+    "citizen": "Citizen",
+    "locked": "Locked",
+    "active": "Active",
+    "lock": "Lock",
+    "unlock": "Unlock"
+  },
+  "admin_dashboard": {
+    "db_load_failed": "Failed to load database information from target node",
+    "column_updated": "Column updated successfully",
+    "column_update_failed": "Failed to update column",
+    "row_added": "New row added successfully",
+    "row_add_failed": "Failed to add row",
+    "delete_row_confirm": "This action cannot be undone. Are you sure you want to delete this row?",
+    "row_deleted": "Row deleted successfully",
+    "row_delete_failed": "Failed to delete row",
+    "posts_load_failed": "Failed to load posts from target node",
+    "delete_post_confirm": "Are you sure you want to remove this post? This action performs a soft-delete.",
+    "post_deleted": "Post removed successfully",
+    "post_delete_failed": "Failed to remove post",
+    "users_load_failed": "Failed to load users from target node",
+    "user_updated": "User updated successfully",
+    "user_update_failed": "Failed to update user",
+    "dashboard": "Dashboard",
+    "tab_overview": "Overview",
+    "tab_users": "Users",
+    "tab_database": "Database",
+    "tab_posts": "Moderation",
+    "tab_system": "Infrastructure",
+    "senior_admin": "Senior Administrator",
+    "node_offline_title": "Node connection lost",
+    "node_offline_desc": "No signal at:",
+    "reconnect": "Reconnect",
+    "loading_data": "Loading data...",
+    "edit_column": "Edit column",
+    "name": "Name",
+    "data_type": "Data type",
+    "new_record": "New record",
+    "add": "Add"
+  },
+  "studio": {
+    "save_success": "Saved successfully",
+    "save_failed": "Save failed, please try again.",
+    "delete_success": "Algorithm deleted successfully",
+    "delete_failed": "Delete failed",
+    "delete_error": "An error occurred while deleting",
+    "initializing": "Initializing Intelligence Studio...",
+    "title": "Algorithm Studio | Majestic Zero",
+    "header_title": "Intelligence Studio",
+    "saved": "Saved",
+    "save": "Save",
+    "delete_confirm_title": "Delete this algorithm?",
+    "delete_confirm_desc": "All logic and configuration data will be permanently removed. Are you sure?",
+    "confirm_delete": "Confirm delete"
+  },
+  "editor": {
+    "max_media": "Maximum 4 media files per post.",
+    "poll_min_options": "A poll must have at least 2 options.",
+    "create_poll": "Create Poll",
+    "option_n": "Option {{n}}",
+    "add_option": "Add option",
+    "day_1": "1 day",
+    "days_3": "3 days",
+    "days_7": "7 days",
+    "post": "Post",
+    "select_gif": "Select GIF",
+    "discard_title": "Discard Changes?",
+    "discard_desc": "You have unsaved changes. Are you sure you want to discard them?",
+    "discard": "Discard",
+    "keep_editing": "Keep Editing"
+  },
+  "suggestions": {
+    "title": "Who to follow",
+    "following": "Following",
+    "follow": "Follow",
+    "more": "Show more"
+  },
+  "security": {
+    "verification_title": "Verification",
+    "verified": "Verified",
+    "not_verified": "Not verified",
+    "verified_desc": "Your account security checks are complete.",
+    "not_verified_desc": "Complete verification to protect your account.",
+    "sessions_title": "Active sessions"
+  },
+  "onboarding": {
+    "location_label": "Location",
+    "location_placeholder": "Search location",
+    "location_hint": "Add a location",
+    "back": "Back"
+  },
+  "footer": {
+    "about": "About",
+    "help": "Help",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "cookies": "Cookies",
+    "copyright": "2026 Arteo",
+    "ads": "Ads",
+    "marketing": "Marketing",
+    "business": "Business",
+    "developers": "Developers",
+    "directory": "Directory",
+    "settings": "Settings",
+    "locations": "Locations"
+  },
+  "poll": {
+    "votes": "votes",
+    "finished": "Finished",
+    "left": "Left"
+  },
+  "edit_profile": {
+    "title": "Edit profile"
+  },
+  "algorithm_studio": {
+    "blocks": {
+      "unnamed": "Unnamed block",
+      "step": "Step",
+      "default_description": "Configure this block to shape the ranking flow."
+    }
+  },
+  "documentation": {
+    "title": "Arteo SDK",
+    "sidebar": {
+      "overview": "Overview",
+      "architecture": "Architecture",
+      "recode_dsl": "Recode DSL",
+      "properties": "Properties",
+      "best_practices": "Best Practices"
+    },
+    "overview": {
+      "title": "Build with Arteo",
+      "desc": "Arteo SDK helps developers compose ranking, moderation, and discovery logic with clear building blocks.",
+      "sequential": {
+        "title": "Sequential Pipelines",
+        "desc": "Run logic in ordered steps so each block can transform or filter content predictably."
+      },
+      "microblocks": {
+        "title": "Microblocks",
+        "desc": "Break larger algorithms into reusable blocks that can be tested and shared independently."
+      }
+    },
+    "architecture": {
+      "title": "Architecture",
+      "philosophy": "Design Philosophy",
+      "philosophy_desc": "Keep every block small, explicit, and easy to reason about. The best algorithm is one a team can inspect.",
+      "steps": {
+        "exit": {
+          "title": "Early exits",
+          "desc": "Filter unsafe or irrelevant content before expensive scoring work begins."
+        },
+        "scoring": {
+          "title": "Scoring",
+          "desc": "Apply transparent scoring rules that can be tuned without rewriting the pipeline."
+        },
+        "polish": {
+          "title": "Polish",
+          "desc": "Apply final ordering, diversity, and presentation rules before rendering the feed."
+        }
+      }
+    },
+    "recode_dsl": {
+      "title": "Recode DSL",
+      "desc": "Recode is a readable rule language for feed and discovery logic.",
+      "block_structure": "Block structure",
+      "pipeline_structure": "Pipeline structure",
+      "table": {
+        "command": "Command",
+        "meaning": "Meaning",
+        "example": "Example",
+        "use": "Run another block in the pipeline.",
+        "filter_out": "Remove the current item from the result set.",
+        "boost": "Increase the current item score.",
+        "penalty": "Reduce the current item score."
+      }
+    },
+    "properties": {
+      "title": "Available Properties",
+      "desc": "Use these properties inside Recode rules to inspect posts, authors, and ranking signals.",
+      "property": "Property",
+      "type": "Type",
+      "description": "Description",
+      "types": {
+        "number": "Number",
+        "logic": "Boolean"
+      },
+      "list": {
+        "like_count": "The total number of likes on a post.",
+        "is_verified": "Whether the author has a verified identity.",
+        "is_promoted": "Whether the post is marked as promoted.",
+        "hours_since_created": "How many hours have passed since the post was created."
+      }
+    },
+    "best_practices": {
+      "title": "Best Practices",
+      "performance": {
+        "title": "Performance",
+        "desc": "Prefer small filters, cache expensive lookups, and keep pipelines short enough to reason about."
+      },
+      "diversity": {
+        "title": "Diversity",
+        "desc": "Avoid one-dimensional feeds by mixing sources, topics, and social graph distance."
+      }
+    }
+  },
+  "hot_event_detail": {
+    "steps": "steps",
+    "header_title": "Event Analysis",
+    "refresh_title": "Refresh analysis",
+    "ai_report_label": "AI Report",
+    "discussions_count": "{{count}} discussions",
+    "summary_title": "Summary",
+    "source_label": "Source",
+    "status_active": "Active",
+    "related_posts": "Related Posts",
+    "empty_posts": "No related posts yet",
+    "empty_posts_desc": "New posts will appear here as the topic develops.",
+    "explore_other": "Explore other events"
+  },
+  "location_page": {
+    "loading_map": "Loading map...",
+    "posts_count": "{{count}} posts",
+    "tab_recent": "Recent",
+    "tab_top": "Top",
+    "no_posts": "No posts found for this location."
+  },
+  "marketplace": {
+    "sidebar": {
+      "connected_status": "Connected"
+    }
+  },
+  "privacy_page": {
+    "title": "Privacy Policy",
+    "subtitle": "How Arteo handles account data, content, and security.",
+    "last_updated": "Last updated: May 6, 2026",
+    "footer_note": "Questions about privacy can be sent to Arteo support.",
+    "sections": {
+      "intro": {
+        "title": "Introduction"
+      },
+      "collection": {
+        "title": "Information We Collect"
+      },
+      "security": {
+        "title": "Security"
+      },
+      "contact": {
+        "title": "Contact"
+      }
+    }
+  },
+  "terms_page": {
+    "title": "Terms of Service",
+    "subtitle": "The rules for using Arteo products and services.",
+    "last_updated": "Last updated: May 6, 2026",
+    "footer_note": "By using Arteo, you agree to these terms.",
+    "sections": {
+      "acceptance": {
+        "title": "Acceptance"
+      },
+      "account": {
+        "title": "Your Account"
+      },
+      "prohibited": {
+        "title": "Prohibited Conduct"
+      },
+      "contact": {
+        "title": "Contact"
+      }
+    }
+  },
+  "countries": {
+    "": ""
+  },
+  "not_found_page_desc": "The page you are looking for does not exist or has been moved."
+}

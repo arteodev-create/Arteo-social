@@ -1,0 +1,528 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --font-main: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
+        --font-display: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
+
+        /* Midnight Platinum v2.0 (Light) */
+        --bg-primary: #ffffff;
+        --bg-secondary: #fafafa;
+        --text-primary: #000000;
+        --text-secondary: #18181b;
+        --text-muted: #27272a;
+        --text-subtle: #3f3f46;
+        --text-placeholder: #52525b;
+        --border-primary: #d4d4d8;
+        /* Sếp chốt: Zinc-300 đậm chất Platinum */
+        --border-secondary: #e4e4e7;
+        --radius-main: 0px;
+        --radius-panel: 0px;
+        --surface-raised: #ffffff;
+        --surface-muted: #f5f5f5;
+        --arteo-shell-gap: 24px;
+        --accent: #000000;
+        --card-bg: rgba(255, 255, 255, 0.8);
+    }
+
+    .dark {
+        /* Midnight Platinum v2.0 (Dark - High Contrast Platinum) */
+        --bg-primary: #000000;
+        --bg-secondary: #050505;
+        --text-primary: #ffffff;
+        --text-secondary: #f4f4f5;
+        --text-muted: #e4e4e7;
+        --text-subtle: #d4d4d8;
+        --text-placeholder: #d4d4d8;
+        --border-primary: #27272a;
+        --border-secondary: #3f3f46;
+        --radius-main: 0px;
+        --radius-panel: 0px;
+        --surface-raised: #000000;
+        --surface-muted: #050505;
+        --arteo-shell-gap: 24px;
+        --accent: #ffffff;
+        --card-bg: rgba(0, 0, 0, 0.9);
+    }
+
+    html,
+    body,
+    #root {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        /* Prevent horizontal stretching */
+    }
+
+    /* ====================================================
+       FIX TRIỆT ĐỂ: Border trắng mặc định của Tailwind
+       Tailwind đặt border-color mặc định là currentColor
+       khiến border-x-2, border-b, border-t hiển thị TRẮNG
+       Override toàn cục về var(--border-primary) là duy nhất
+       ==================================================== */
+    *,
+    *::before,
+    *::after {
+        border-color: var(--border-primary);
+    }
+
+    html {
+        overflow-y: scroll;
+        /* Force scrollbar to always exist - The Ultimate Shift Killer */
+        scrollbar-gutter: stable;
+        /* Maintain space even when scrollbar is not needed */
+    }
+
+    body {
+        height: 100%;
+        font-family: var(--font-main);
+        font-size: 15px;
+        line-height: 1.6;
+        letter-spacing: -0.02em;
+        /* Tinh chỉnh khoảng cách chữ cho mượt hơn */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-smoothing: grayscale;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        /* Chống Layout Shift khi mở Modal/Dropdown */
+        padding-right: 0 !important;
+        margin-right: 0 !important;
+        overflow-x: hidden !important;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: var(--font-display);
+        letter-spacing: -0.04em;
+        /* Chữ đậm thì khoảng cách hơi khít lại mới đẹp */
+        font-weight: 800;
+        /* Đậm chuẩn Majestic */
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    h1 {
+        font-size: 32px;
+        /* Tăng kích thước tiêu đề cho hoành tráng */
+    }
+
+    h2 {
+        font-size: 24px;
+    }
+
+    h3 {
+        font-size: 20px;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+        font-family: inherit;
+        font-size: inherit;
+    }
+
+    /* Surgical Focus Reset - Majestic Platinum Standard */
+    *:focus,
+    *:focus-visible,
+    *:active,
+    *[data-state="open"],
+    button:focus,
+    button:active {
+        outline: none !important;
+        outline-width: 0 !important;
+        box-shadow: none !important;
+        --tw-ring-color: transparent !important;
+        --tw-ring-width: 0px !important;
+        --tw-ring-offset-width: 0px !important;
+        --tw-ring-offset-color: transparent !important;
+    }
+}
+
+@layer components {
+
+    /* Majestic Page Container */
+    .arteo-page-container {
+        background-color: var(--bg-primary);
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+
+    /* Majestic Input System - 24px Radius, Sharp Contrast */
+    .arteo-input {
+        @apply w-full px-4 py-3 bg-transparent border border-[var(--border-primary)] rounded-[8px] outline-none text-[15px] font-bold transition-all duration-150;
+        color: var(--text-primary);
+    }
+
+    .arteo-input:focus {
+        @apply border-[var(--text-primary)] bg-[var(--bg-secondary)];
+    }
+
+    .arteo-input::placeholder {
+        @apply text-[var(--text-placeholder)] font-semibold;
+    }
+
+    /* Arteo Button System - High Contrast Platinum */
+    .arteo-btn-primary {
+        @apply relative flex items-center justify-center gap-2 px-6 py-3 rounded-[8px] font-bold transition-all duration-150 select-none overflow-hidden active:scale-[0.98];
+        background-color: var(--text-primary);
+        color: var(--bg-primary);
+    }
+
+    .arteo-btn-primary:disabled {
+        @apply opacity-20 cursor-not-allowed grayscale;
+    }
+
+    .arteo-btn-secondary {
+        @apply relative flex items-center justify-center gap-2 px-6 py-3 rounded-[8px] font-bold border border-[var(--border-primary)] transition-all duration-150 select-none active:scale-[0.98];
+        background-color: transparent;
+        color: var(--text-primary);
+    }
+
+    .arteo-btn-secondary:hover:not(:disabled) {
+        @apply bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)];
+    }
+
+    .arteo-btn-secondary:disabled {
+        @apply opacity-20 cursor-not-allowed;
+    }
+
+    /* Shared Majestic Utilities */
+    .arteo-glass {
+        background-color: var(--bg-primary);
+        border: 1px solid var(--border-primary);
+        border-radius: var(--radius-panel);
+    }
+
+    .arteo-shadow-subtle {
+        @apply shadow-none border border-[var(--border-primary)] rounded-[8px];
+    }
+
+    .arteo-panel {
+        @apply bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-[8px] shadow-none;
+    }
+
+    .arteo-card {
+        @apply bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-[8px] shadow-none transition-colors;
+    }
+
+    .arteo-card:hover {
+        background-color: var(--bg-secondary);
+        border-color: var(--text-primary);
+    }
+
+    .arteo-page-pad {
+        @apply px-4 py-5 md:px-6 md:py-6;
+    }
+
+    .arteo-divider {
+        @apply border-[var(--border-primary)];
+    }
+
+    .text-platinum-glow {
+        text-shadow: 0 0 1px rgba(255, 255, 255, 0.4);
+    }
+}
+
+/* =========================================================================
+   MAJESTIC PLATINUM ANIMATIONS
+   Clean, Smooth and Professional
+   ========================================================================= */
+
+@keyframes platinum-fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.animate-platinum-in {
+    animation: platinum-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* =========================================================================
+   ARTEO SIBLING PORTAL SYSTEM
+   High-performance UI isolation for Modal interactions.
+   ========================================================================= */
+
+html.has-active-modal,
+body.has-active-modal {
+    overflow: hidden !important;
+}
+
+body.has-active-modal #root {
+    /* Loại bỏ hoàn toàn các can thiệp vào root để tránh nhấp nháy màn hình */
+}
+
+.global-modal-portal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000000000 !important;
+    pointer-events: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    isolation: isolate;
+}
+
+.global-modal-portal .pointer-events-auto {
+    pointer-events: auto !important;
+}
+
+/* sonner-toast Monochrome Standard */
+[data-sonner-toast] {
+    background-color: var(--bg-primary) !important;
+    border: 1px solid var(--border-primary) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+    padding: 12px 16px !important;
+}
+
+[data-sonner-toast] [data-title] {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+}
+
+/* Common Global Utilities */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.stable-gutter {
+    scrollbar-gutter: stable !important;
+}
+
+.text-display {
+    font-family: var(--font-display) !important;
+    color: var(--text-primary) !important;
+}
+
+.text-readable {
+    font-family: var(--font-main) !important;
+    color: var(--text-primary) !important;
+    /* Zinc 900 cho nội dung đọc */
+}
+
+/* Accessibility contrast pass: keep subtle UI text readable on white surfaces. */
+html:not(.dark) .text-zinc-300,
+html:not(.dark) .text-zinc-400 {
+    color: var(--text-placeholder) !important;
+}
+
+html:not(.dark) .text-zinc-500,
+html:not(.dark) .placeholder\:text-zinc-500::placeholder,
+html:not(.dark) .placeholder\:text-zinc-400::placeholder {
+    color: var(--text-subtle) !important;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+    color: var(--text-placeholder);
+    opacity: 1;
+}
+
+/* Stable line height for Vietnamese diacritics */
+.leading-relaxed {
+    line-height: 1.625 !important;
+}
+
+/* =========================================================================
+   PLATINUM MINIMAL SCROLLBAR
+   Designed to be subtle, thin and harmonious with the white aesthetic.
+   ========================================================================= */
+
+/* Arteo Ultra-Thin Scrollbar System */
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 20px;
+    transition: background 0.3s ease;
+}
+
+/* Chỉ hiện thanh cuộn khi di chuyển hoặc tác động vào vùng chứa */
+*:hover::-webkit-scrollbar-thumb {
+    background: var(--border-secondary);
+}
+
+::-webkit-scrollbar-thumb:active {
+    background: var(--text-muted);
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+*:hover {
+    scrollbar-color: var(--border-secondary) transparent;
+}
+
+/* =========================================================================
+   SURGICAL SHIMMER ANIMATION
+   High-precision placeholder loading effect
+   ========================================================================= */
+
+@keyframes surgical-shimmer-anim {
+    0% {
+        background-position: -1200px 0;
+    }
+
+    100% {
+        background-position: 1200px 0;
+    }
+}
+
+.surgical-shimmer {
+    background: var(--bg-secondary);
+    background-image: linear-gradient(to right,
+            var(--bg-secondary) 0%,
+            var(--border-primary) 20%,
+            var(--bg-secondary) 40%,
+            var(--bg-secondary) 100%);
+    background-repeat: no-repeat;
+    background-size: 1200px 100%;
+    animation: surgical-shimmer-anim 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.dark .surgical-shimmer {
+    background: var(--bg-secondary);
+    background-image: linear-gradient(to right,
+            var(--bg-secondary) 0%,
+            var(--border-primary) 20%,
+            var(--bg-secondary) 40%,
+            var(--bg-secondary) 100%);
+}
+
+/* Global consistency fixes */
+* {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
+    outline: none !important;
+}
+
+button,
+a {
+    user-select: none;
+}
+
+/* Arteo hardening: keep controls and popovers aligned with the current square language. */
+button,
+input,
+textarea,
+select,
+[role="button"],
+[role="menuitem"],
+[role="dialog"],
+[data-radix-popper-content-wrapper] > * {
+    border-radius: var(--radius-panel) !important;
+    box-shadow: none !important;
+}
+
+button.rounded-full,
+[role="button"].rounded-full {
+    border-radius: var(--radius-panel) !important;
+}
+
+.arteo-panel,
+.arteo-card,
+[class*="rounded-[1"],
+[class*="rounded-[2"],
+[class*="rounded-[3"],
+[class*="rounded-[4"],
+[class*="rounded-[5"] {
+    border-radius: var(--radius-panel) !important;
+}
+
+[class*="shadow-"] {
+    box-shadow: none !important;
+}
+
+[class*="border-2"] {
+    border-width: 1px !important;
+}
+
+[class*="blur-2xl"],
+[class*="blur-3xl"],
+[class*="blur-[100px"],
+[class*="blur-[150px"] {
+    display: none !important;
+}
+
+[class*="bg-gradient"],
+[class*="bg-[radial-gradient"] {
+    background-image: none !important;
+}
+
+/* Utility to hide scrollbar but keep functionality */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none !important;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+}
+
+/* GIPHY REDIRECT KILLER - PLATINUM STANDARD */
+.giphy-no-link a {
+    pointer-events: none !important;
+}
+
+.giphy-no-link a img,
+.giphy-no-link a button {
+    pointer-events: auto !important;
+}
+
+.giphy-no-link img {
+    cursor: pointer !important;
+}
+
+@keyframes platinum-shine {
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: translateX(100%);
+    }
+}
+
+.animate-platinum-shine {
+    animation: platinum-shine 2s infinite ease-in-out;
+}

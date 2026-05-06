@@ -1,0 +1,80 @@
+import React, { useMemo } from 'react';
+import { Helmet } from 'react-helmet-async';
+import { useTranslation } from 'react-i18next';
+import HelpCenterLayout from '@widgets/layout/HelpCenterLayout';
+
+const Terms: React.FC = () => {
+  const { t } = useTranslation();
+
+  const sections = useMemo(() => [
+    { id: 'acceptance', title: t('terms_page.sections.acceptance.title') },
+    { id: 'account', title: t('terms_page.sections.account.title') },
+    { id: 'prohibited', title: t('terms_page.sections.prohibited.title') },
+    { id: 'contact', title: t('terms_page.sections.contact.title') },
+  ], [t]);
+
+  const contentKeys = ['acceptance', 'account', 'prohibited', 'contact'] as const;
+
+  return (
+    <HelpCenterLayout
+      pageTitle={t('terms_page.title')}
+      metaDescription={t('terms_page.subtitle')}
+      sections={sections}
+    >
+      <Helmet>
+        <title>{t('terms_page.title')} | Arteo</title>
+      </Helmet>
+
+      {/* Hero */}
+      <div className="mb-14 pb-14 border-b border-[var(--border-primary)]">
+        <h1 className="text-[32px] font-bold tracking-tighter text-[var(--text-primary)] leading-tight font-display mb-4">
+           {t('terms_page.title')}
+        </h1>
+        <p className="text-[16px] text-[var(--text-muted)] font-light leading-relaxed font-readable max-w-[520px]">
+          {t('terms_page.subtitle')}
+        </p>
+        <p className="mt-6 text-[11px] font-bold text-[var(--text-muted)] tracking-widest uppercase">
+          {t('terms_page.last_updated')}
+        </p>
+      </div>
+
+      {/* Sections */}
+      <div className="space-y-12">
+        {contentKeys.map((key) => (
+          <section key={key} id={key} className="scroll-mt-24">
+            <h2 className="text-[20px] font-bold text-[var(--text-primary)] mb-4 tracking-tight font-display">
+              {t(`terms_page.sections.${key}.title`)}
+            </h2>
+            <div className="space-y-4">
+              <p className="text-[15px] text-[var(--text-muted)] leading-relaxed font-light font-readable">
+                {t(`terms_page.sections.${key}.content`)}
+              </p>
+              
+              {/* Items List (if any) */}
+              {Array.isArray(t(`terms_page.sections.${key}.items`, { returnObjects: true })) && (
+                <ul className="space-y-2 pt-2">
+                  {(t(`terms_page.sections.${key}.items`, { returnObjects: true }) as string[]).map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className="mt-[8px] w-[4px] h-[4px] rounded-[8px] bg-zinc-300 dark:bg-zinc-700 flex-shrink-0" />
+                      <span className="text-[14px] text-[var(--text-muted)] leading-relaxed font-light font-readable">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+        ))}
+      </div>
+
+      {/* Footer note */}
+      <div className="mt-16 pt-8 border-t border-[var(--border-primary)]">
+        <p className="text-[12px] text-[var(--text-muted)]">
+          {t('terms_page.footer_note')}
+        </p>
+      </div>
+    </HelpCenterLayout>
+  );
+};
+
+export default Terms;
+
