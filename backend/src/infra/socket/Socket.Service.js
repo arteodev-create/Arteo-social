@@ -23,6 +23,7 @@ class SocketService {
      */
     initialize(server) {
         this.io = new Server(server, {
+            path: '/api/socket.io',
             cors: {
                 origin: (origin, callback) => {
                     // Socket.IO Auto-Detection for browser and mobile clients

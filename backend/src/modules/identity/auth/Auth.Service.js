@@ -27,7 +27,39 @@ class AuthService {
         }
 
         if (SupabaseAuth.isEnabled() && user.supabaseAuthId) {
-            await SupabaseAuth.authenticate(user.email, credential);
+            try {
+                await SupabaseAuth.authenticate(user.email, credential);
+            } catch (error) {
+                const localCredentialValid = await Security.verifyCredential(credential, user.password);
+                if (!localCredentialValid) {
+                    await Repository.recordHistory({
+                        userId: user.uuid,
+                        ipAddress: ip,
+                        userAgent: ua,
+                        isSuccessful: false,
+                        failureReason: 'INVALID_CREDENTIALS'
+                    });
+                    throw new AuthorizationError('Invalid identifier or password.', { code: ErrorCodes.AUTH_INVALID_CREDS });
+                }
+
+                Logger.warn('[AuthService] Supabase Auth drift detected; local credential verified, continuing login and resyncing provider.', {
+                    userId: user.uuid,
+                    email: user.email,
+                    reason: error.message
+                });
+
+                try {
+                    if (user.emailVerified) {
+                        await SupabaseAuth.confirmEmail(user.supabaseAuthId);
+                    }
+                    await SupabaseAuth.updatePassword(user.supabaseAuthId, credential);
+                } catch (syncError) {
+                    Logger.warn('[AuthService] Supabase Auth resync failed after local credential verification.', {
+                        userId: user.uuid,
+                        reason: syncError.message
+                    });
+                }
+            }
         } else if (!(await Security.verifyCredential(credential, user.password))) {
             await Repository.recordHistory({ 
                 userId: user.uuid, 
