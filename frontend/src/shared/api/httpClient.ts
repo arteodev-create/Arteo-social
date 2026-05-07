@@ -8,7 +8,7 @@ import { tokenStorage } from './tokenStorage';
  * Follows the Arteo Standard Protocol.
  */
 
-const DEFAULT_API_URL = 'https://api-recode.arteosocial.com/api';
+const DEFAULT_API_URL = 'https://acs-production-3833.up.railway.app/api';
 
 const getBaseUrl = () => {
   if (typeof window === 'undefined') return process.env.REACT_APP_API_URL || DEFAULT_API_URL;

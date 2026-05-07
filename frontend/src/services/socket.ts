@@ -37,7 +37,7 @@ export const initSocket = (token: string) => {
         return socket;
     }
 
-    const defaultApi = process.env.REACT_APP_API_URL || 'https://api-recode.arteosocial.com/api';
+    const defaultApi = process.env.REACT_APP_API_URL || 'https://acs-production-3833.up.railway.app/api';
     const SOCKET_URL = defaultApi.replace(/\/api$/, '');
 
     socket = io(SOCKET_URL, {
@@ -70,4 +70,3 @@ export const disconnectSocket = () => {
         socket = null;
     }
 };
-

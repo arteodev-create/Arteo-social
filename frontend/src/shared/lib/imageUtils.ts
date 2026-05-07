@@ -4,8 +4,8 @@
  */
 
 const getBaseUrl = () => {
-    if (typeof window === 'undefined') return 'https://api-recode.arteosocial.com';
-    const apiBase = process.env.REACT_APP_API_URL || 'https://api-recode.arteosocial.com/api';
+    if (typeof window === 'undefined') return 'https://acs-production-3833.up.railway.app';
+    const apiBase = process.env.REACT_APP_API_URL || 'https://acs-production-3833.up.railway.app/api';
     return apiBase.replace(/\/api$/, '');
 };
 

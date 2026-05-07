@@ -5,7 +5,7 @@
 
 import client from '@shared/api/httpClient';
 
-const DEFAULT_API_URL = 'https://api-recode.arteosocial.com/api';
+const DEFAULT_API_URL = 'https://acs-production-3833.up.railway.app/api';
 
 export const UrlUtil = {
   /**
