@@ -73,12 +73,29 @@ class PostController {
      * Creation orchestrator for Posts & Quotes.
      */
     createPost = AsyncHandler(async (req, res) => {
-        const validatedData = createPostSchema.parse(req.body);
+        const normalizedBody = await this._normalizeReferenceIds(req.body);
+        const validatedData = createPostSchema.parse(normalizedBody);
         const mediaFiles = this._extractMediaFiles(req.files);
 
         const post = await PostService.create(req.user.uuid, validatedData, mediaFiles);
         res.created({ post: TransformUtils.formatPost(post, req.user.uuid) }, { message: 'BÃ i viáº¿t cá»§a báº¡n Ä‘Ã£ Ä‘Æ°á»£c Ä‘Äƒng táº£i thÃ nh cÃ´ng.' });
     });
+
+    _normalizeReferenceIds = async (body = {}) => {
+        const nextBody = { ...body };
+        const parentId = nextBody.parentId || nextBody.parent_id;
+        const originalPostId = nextBody.originalPostId || nextBody.original_post_id;
+
+        if (parentId) {
+            nextBody.parentId = await PostService.resolveId(String(parentId));
+        }
+
+        if (originalPostId) {
+            nextBody.originalPostId = await PostService.resolveId(String(originalPostId));
+        }
+
+        return nextBody;
+    };
 
     /**
      * Creation orchestrator for Comments.

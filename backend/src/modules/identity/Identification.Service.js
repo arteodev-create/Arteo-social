@@ -5,6 +5,16 @@ const EmailService = require('../../infra/email/Email.Service');
 const CacheService = require('../../infra/cache/Cache.Service');
 const SupabaseAuth = require('../../infra/security/SupabaseAuth.Provider');
 const { AppError, ErrorCodes } = require('../../core/Errors');
+const {
+    DEFAULT_DOMAIN,
+    buildActorUri,
+    buildHandle,
+    buildInboxUrl,
+    buildOutboxUrl,
+    normalizeDomain,
+    normalizeUsername,
+    parseHandle
+} = require('./IdentityHandle');
 
 const AuthService = require('./auth/Auth.Service');
 const ProfileService = require('./auth/Profile.Service');
@@ -43,12 +53,15 @@ class IdentificationService {
     // --- Identity Establishment (Registration) ---
 
     async establishIdentity(data) {
-        const { username, email, credential, fullName, language = 'vi' } = data;
+        const parsedHandle = parseHandle(data.username, data.domain || DEFAULT_DOMAIN);
+        const username = normalizeUsername(parsedHandle.username);
+        const identityDomain = normalizeDomain(parsedHandle.domain);
+        const { email, credential, fullName, language = 'vi' } = data;
         
-        Logger.info('[Identity:Establish] Incoming registration data:', { username, email, fullName });
+        Logger.info('[Identity:Establish] Incoming registration data:', { username, identityDomain, email, fullName });
 
         // 1. Kiểm tra sự tồn tại (Uniqueness check)
-        await this._checkIdentityUniqueness(username, email);
+        await this._checkIdentityUniqueness(username, identityDomain, email);
 
         const supabaseUser = await SupabaseAuth.createUser({
             email,
@@ -65,6 +78,10 @@ class IdentificationService {
         try {
             user = await Repository.create({ 
                 username, 
+                identityDomain,
+                actorUri: buildActorUri(username, identityDomain),
+                inboxUrl: buildInboxUrl(username, identityDomain),
+                outboxUrl: buildOutboxUrl(username, identityDomain),
                 email, 
                 password: hashedPassword,
                 supabaseAuthId: supabaseUser?.id || null,
@@ -103,6 +120,8 @@ class IdentificationService {
         return { 
             email: user.email,
             username: user.username,
+            identityDomain: user.identityDomain,
+            handle: buildHandle(user.username, user.identityDomain),
             requiresVerification: true 
         };
     }
@@ -139,8 +158,8 @@ class IdentificationService {
     /**
      * Kiểm tra tính duy nhất của Username/Email.
      */
-    async _checkIdentityUniqueness(username, email) {
-        const existing = await Repository.findByIdentifier(username) || await Repository.findByIdentifier(email);
+    async _checkIdentityUniqueness(username, identityDomain, email) {
+        const existing = await Repository.findByIdentifier(buildHandle(username, identityDomain)) || await Repository.findByIdentifier(email);
         if (existing) {
             throw new AppError('Danh tính đã tồn tại trong hệ thống.', 400, ErrorCodes.AUTH_IDENTIFIER_EXISTS);
         }

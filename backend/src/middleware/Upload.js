@@ -43,27 +43,7 @@ const upload = multer({
 
 const encodePathSegment = (value) => encodeURIComponent(value).replace(/%2F/g, '/');
 
-const buildS3PublicUrl = (bucket, key) => {
-  const endpoint = process.env.AWS_S3_ENDPOINT || '';
-  const cdnUrl = process.env.AWS_S3_CDN_URL;
-  const region = process.env.AWS_S3_REGION || process.env.AWS_REGION || 'ap-southeast-2';
-  const normalizedCdn = cdnUrl ? (cdnUrl.endsWith('/') ? cdnUrl.slice(0, -1) : cdnUrl) : null;
-
-  if (normalizedCdn) {
-    const encodedBucket = encodePathSegment(bucket);
-    const bucketAwareBase = normalizedCdn.includes('/storage/v1/object/public') && !normalizedCdn.endsWith(`/${encodedBucket}`)
-      ? `${normalizedCdn}/${encodedBucket}`
-      : normalizedCdn;
-    return `${bucketAwareBase}/${encodePathSegment(key)}`;
-  }
-
-  if (endpoint.includes('.supabase.co/storage/v1/s3')) {
-    const objectBase = endpoint.replace('/storage/v1/s3', '/storage/v1/object/public');
-    return `${objectBase}/${encodePathSegment(bucket)}/${encodePathSegment(key)}`;
-  }
-
-  return `https://${bucket}.s3.${region}.amazonaws.com/${encodePathSegment(key)}`;
-};
+const buildInternalCdnUrl = (key) => `/api/cdn/${encodePathSegment(key)}`;
 
 const sanitizeS3File = (file) => {
   if (!hasS3Storage) {
@@ -72,13 +52,12 @@ const sanitizeS3File = (file) => {
     return file;
   }
 
-  const bucket = process.env.AWS_S3_BUCKET;
   const key = file.key;
+  const cdnUrl = buildInternalCdnUrl(key);
 
-  const forcedUrl = buildS3PublicUrl(bucket, key);
-
-  file.url = forcedUrl;
-  file.location = forcedUrl;
+  file.storageKey = key;
+  file.url = cdnUrl;
+  file.location = cdnUrl;
   return file;
 };
 

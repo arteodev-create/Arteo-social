@@ -12,7 +12,11 @@
     "test": "jest",
     "check:syntax": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Get-ChildItem -Path src -Recurse -Filter *.js | ForEach-Object { node --check $_.FullName }\"",
     "check:prisma": "prisma validate",
-    "check": "npm run check:syntax && npm run check:prisma"
+    "check": "npm run check:syntax && npm run check:prisma",
+    "seed": "node prisma/seed.js",
+    "seed:living": "node prisma/seed.js",
+    "seed:ecosystem": "node prisma/seed-ecosystem-demo.js",
+    "backfill:library-contract": "node scripts/backfill-library-download-contract.js"
   },
   "dependencies": {
     "@arteoapp/recode-plugin": "file:./libs/recode-plugin",

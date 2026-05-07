@@ -8,6 +8,31 @@ const SocketService = require('../../infra/socket/Socket.Service');
 // Validation
 const { createAlgorithmSchema, updateAlgorithmSchema } = require('./Algorithm.Validation');
 
+const emitFeedChange = ({ userId, action, algorithm, previousIsPublic = false, extra = {} }) => {
+    const payload = {
+        action,
+        uuid: algorithm?.uuid,
+        userId,
+        isPublic: Boolean(algorithm?.isPublic),
+        installedFromId: algorithm?.installedFromId || null,
+        ...extra
+    };
+
+    SocketService.emitToUser(userId, 'ALGORITHM_UPDATED', payload);
+    SocketService.emitToUser(userId, 'FEED_UPDATED', payload);
+
+    if (payload.isPublic || previousIsPublic) {
+        SocketService.emitToOthers(userId, 'ALGORITHM_UPDATED', payload);
+        SocketService.emitToOthers(userId, 'FEED_UPDATED', payload);
+    }
+};
+
+const emitPluginLibraryChange = (userId, action, extra = {}) => {
+    const payload = { action, userId, ...extra };
+    SocketService.emitToUser(userId, 'PLUGIN_UPDATED', payload);
+    SocketService.emitToUser(userId, 'plugin_updated', payload);
+};
+
 /**
  * Algorithm Controller
  * Orchestrates Feed Discovery and Algorithm Management.
@@ -21,7 +46,7 @@ class AlgorithmController {
         const validated = createAlgorithmSchema.parse(req.body);
         const result = await AlgorithmService.create(req.user.uuid, validated);
         
-        SocketService.emitToUser(req.user.uuid, 'ALGORITHM_UPDATED', { action: 'create' });
+        emitFeedChange({ userId: req.user.uuid, action: 'create', algorithm: result });
         res.created(TransformUtils.formatAlgorithm(result), { message: 'Algorithm established successfully.' });
     });
 
@@ -31,9 +56,10 @@ class AlgorithmController {
     update = asyncHandler(async (req, res) => {
         const validated = updateAlgorithmSchema.parse(req.body);
         const { uuid } = req.params;
+        const previous = await AlgorithmRepository.findByUuid(uuid);
         const result = await AlgorithmService.update(uuid, req.user.uuid, validated);
         
-        SocketService.emitToUser(req.user.uuid, 'ALGORITHM_UPDATED', { action: 'update' });
+        emitFeedChange({ userId: req.user.uuid, action: 'update', algorithm: result, previousIsPublic: Boolean(previous?.isPublic) });
         res.success(TransformUtils.formatAlgorithm(result), { message: 'Algorithm updated successfully.' });
     });
 
@@ -42,6 +68,7 @@ class AlgorithmController {
      */
     toggleActive = asyncHandler(async (req, res) => {
         const result = await AlgorithmService.toggleActive(req.params.uuid, req.user.uuid);
+        emitFeedChange({ userId: req.user.uuid, action: result.isActive ? 'activate' : 'deactivate', algorithm: result });
         res.success(TransformUtils.formatAlgorithm(result), { message: `Algorithm ${result.isActive ? 'activated' : 'deactivated'} successfully.` });
     });
 
@@ -49,7 +76,8 @@ class AlgorithmController {
      * Retrieves a detailed algorithm definition by UUID.
      */
     getAlgorithmById = asyncHandler(async (req, res) => {
-        const algorithm = await AlgorithmRepository.findByUuid(req.params.uuid);
+        const identifier = req.params.identifier || req.params.uuid;
+        const algorithm = await AlgorithmRepository.findByIdentifier(identifier, req.user?.uuid);
         if (!algorithm) throw new NotFoundError('Algorithm not found.');
         
         // Ownership / Visibility audit
@@ -78,12 +106,37 @@ class AlgorithmController {
     });
 
     /**
+     * Retrieves the feed currently used to rank Home.
+     */
+    getActiveAlgorithm = asyncHandler(async (req, res) => {
+        const algorithm = await AlgorithmRepository.findActiveDetailed(req.user.uuid);
+        res.success(algorithm ? TransformUtils.formatAlgorithm(algorithm) : null);
+    });
+
+    /**
      * Installs a public discovery algorithm into the user domain.
      */
     install = asyncHandler(async (req, res) => {
         const { uuid } = req.params;
         const result = await AlgorithmService.install(uuid, req.user.uuid);
-        res.created(TransformUtils.formatAlgorithm(result), { message: 'Algorithm installed successfully.' });
+        const downloadedCount = result.dependencySummary?.downloaded || 0;
+        const message = downloadedCount > 0
+            ? `Algorithm downloaded with ${downloadedCount} required plugin${downloadedCount > 1 ? 's' : ''}.`
+            : 'Algorithm downloaded successfully.';
+        emitFeedChange({ userId: req.user.uuid, action: 'install', algorithm: result.algorithm });
+        if ((result.dependencySummary?.total || 0) > 0) {
+            emitPluginLibraryChange(req.user.uuid, 'dependency_install', {
+                dependencies: result.dependencies || [],
+                downloadedDependencies: result.downloadedDependencies || [],
+                dependencySummary: result.dependencySummary
+            });
+        }
+        res.created(TransformUtils.formatAlgorithm(result.algorithm), {
+            message,
+            dependencies: result.dependencies || [],
+            downloadedDependencies: result.downloadedDependencies || [],
+            dependencySummary: result.dependencySummary || { total: 0, downloaded: 0 }
+        });
     });
 
     /**
@@ -103,7 +156,7 @@ class AlgorithmController {
         }
 
         await AlgorithmRepository.delete(uuid);
-        SocketService.emitToUser(req.user.uuid, 'ALGORITHM_UPDATED', { action: 'delete' });
+        emitFeedChange({ userId: req.user.uuid, action: 'delete', algorithm, previousIsPublic: Boolean(algorithm.isPublic) });
         res.success(null, { message: 'Algorithm purged successfully.' });
     });
 
@@ -115,6 +168,7 @@ class AlgorithmController {
         const { version, weights } = req.body;
         
         const result = await AlgorithmService.bumpVersion(uuid, req.user.uuid, { version, weights });
+        emitFeedChange({ userId: req.user.uuid, action: 'version', algorithm: result });
         res.success(TransformUtils.formatAlgorithm(result), { message: 'Algorithm version bumped successfully.' });
     });
 
@@ -126,6 +180,7 @@ class AlgorithmController {
         const result = await AlgorithmService.activate(uuid, req.user.uuid);
         
         SocketService.emitToUser(req.user.uuid, 'ALGO_ACTIVATED', { uuid: result.uuid });
+        emitFeedChange({ userId: req.user.uuid, action: 'activate', algorithm: result });
         res.success(TransformUtils.formatAlgorithm(result), { 
             message: `Algorithm ${result.name} activated successfully.` 
         });
@@ -147,7 +202,7 @@ class AlgorithmController {
         const { uuid } = req.params;
         const result = await AlgorithmService.pin(uuid, req.user.uuid);
         
-        SocketService.emitToUser(req.user.uuid, 'ALGORITHM_UPDATED', { action: 'pin' });
+        emitFeedChange({ userId: req.user.uuid, action: 'pin', algorithm: result });
         res.success(TransformUtils.formatAlgorithm(result), { message: 'Đã ghim thuật toán.' });
     });
 
@@ -158,7 +213,7 @@ class AlgorithmController {
         const { uuid } = req.params;
         const result = await AlgorithmService.unpin(uuid, req.user.uuid);
         
-        SocketService.emitToUser(req.user.uuid, 'ALGORITHM_UPDATED', { action: 'unpin' });
+        emitFeedChange({ userId: req.user.uuid, action: 'unpin', algorithm: result });
         res.success(TransformUtils.formatAlgorithm(result), { message: 'Đã bỏ ghim thuật toán.' });
     });
 }

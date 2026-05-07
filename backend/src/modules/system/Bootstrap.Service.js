@@ -1,6 +1,7 @@
 const Logger = require('../../infra/logging/Logger.Service');
 const IdentificationRepository = require('../identity/Identification.Repository');
 const Security = require('../../infra/security/SecurityEngine');
+const { buildActorUri, buildInboxUrl, buildOutboxUrl } = require('../identity/IdentityHandle');
 
 /**
  * BootstrapService
@@ -23,13 +24,14 @@ class BootstrapService {
                 Logger.info('[Bootstrap] Đang đồng bộ tài khoản Quản trị tối cao (Force Sync)...');
                 
                 const adminUsername = 'admin';
+                const adminDomain = String(platformDomain).toLowerCase();
                 const adminEmail = `admin@${platformDomain}`;
                 const defaultPass = 'ArteoAdmin@2026';
                 
                 const hashedPassword = await Security.hashCredential(defaultPass);
 
                 const adminUser = await IdentificationRepository.prisma.user.upsert({
-                    where: { username: adminUsername },
+                    where: { username_identityDomain: { username: adminUsername, identityDomain: adminDomain } },
                     update: {
                         password: hashedPassword,
                         isAdmin: true,
@@ -40,6 +42,10 @@ class BootstrapService {
                     },
                     create: {
                         username: adminUsername,
+                        identityDomain: adminDomain,
+                        actorUri: buildActorUri(adminUsername, adminDomain),
+                        inboxUrl: buildInboxUrl(adminUsername, adminDomain),
+                        outboxUrl: buildOutboxUrl(adminUsername, adminDomain),
                         email: adminEmail,
                         password: hashedPassword,
                         fullName: 'Arteo Administrator',

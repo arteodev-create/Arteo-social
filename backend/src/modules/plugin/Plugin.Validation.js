@@ -8,7 +8,7 @@ const { z } = require('zod');
 const createPluginSchema = z.object({
     name: z.string().min(3).max(50),
     description: z.string().max(200).optional(),
-    code: z.string().min(10).max(50000).refine(val => {
+    code: z.string().min(10).max(1000000).refine(val => {
         // Basic security scan for dangerous keywords
         const dangerous = ['process.', 'require(', 'eval(', 'child_process', 'fs.', 'os.'];
         return !dangerous.some(d => val.includes(d));
@@ -20,7 +20,7 @@ const createPluginSchema = z.object({
 const updatePluginSchema = z.object({
     name: z.string().min(3).max(50).optional(),
     description: z.string().max(200).optional(),
-    code: z.string().min(10).max(50000).refine(val => {
+    code: z.string().min(10).max(1000000).refine(val => {
         const dangerous = ['process.', 'require(', 'eval(', 'child_process', 'fs.', 'os.'];
         return !dangerous.some(d => val.includes(d));
     }, { message: 'Mã nguồn plugin chứa từ khóa bị cấm.' }).optional(),

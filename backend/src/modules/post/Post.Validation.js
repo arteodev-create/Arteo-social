@@ -6,6 +6,11 @@ const { VISIBILITY } = require('../../core/Constants');
  * Standardized using Zod for ABS v14.1 Platinum.
  */
 
+const dbUuidSchema = z.string().regex(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    'Invalid UUID'
+);
+
 const createPostSchema = z.preprocess((data) => {
     if (typeof data !== 'object' || data === null) return data;
     const newData = { ...data };
@@ -17,6 +22,7 @@ const createPostSchema = z.preprocess((data) => {
     if (newData.thread_total && !newData.threadTotal) newData.threadTotal = newData.thread_total;
     if (newData.gif_url && !newData.gifUrl) newData.gifUrl = newData.gif_url;
     if (newData.link_preview && !newData.linkPreview) newData.linkPreview = newData.link_preview;
+    if (newData.visibility === 'mentioned') newData.visibility = 'private';
 
     ['poll', 'linkPreview'].forEach((field) => {
         if (typeof newData[field] === 'string') {
@@ -27,6 +33,12 @@ const createPostSchema = z.preprocess((data) => {
             }
         }
     });
+
+    if (newData.poll && typeof newData.poll === 'object') {
+        if (newData.poll.duration_hours && !newData.poll.durationHours) {
+            newData.poll.durationHours = newData.poll.duration_hours;
+        }
+    }
     
     return newData;
 }, z.object({
@@ -36,10 +48,11 @@ const createPostSchema = z.preprocess((data) => {
         const upper = val.toUpperCase();
         return upper === 'REPLY' ? 'COMMENT' : upper;
     }, z.enum(['POST', 'QUOTE', 'COMMENT', 'THREAD'])).optional().default('POST'),
-    parentId: z.string().uuid().optional().nullable(),
-    originalPostId: z.string().uuid().optional().nullable(),
+    parentId: dbUuidSchema.optional().nullable(),
+    originalPostId: dbUuidSchema.optional().nullable(),
     visibility: z.preprocess((val) => {
         if (typeof val !== 'string') return val;
+        if (val.toLowerCase() === 'mentioned') return VISIBILITY.PRIVATE;
         return val.toUpperCase();
     }, z.enum([VISIBILITY.PUBLIC, VISIBILITY.FOLLOWERS, VISIBILITY.PRIVATE])).optional().default(VISIBILITY.PUBLIC),
     gifUrl: z.string().url('URL GIF không hợp lệ').optional().nullable(),

@@ -61,10 +61,17 @@ class ProfileService {
 
         const updatedUser = await Repository.update(userId, updateData);
 
-        // Clear all identity caches to ensure consistency across the Arteo Identity System (AIS)
-        await CacheService.invalidateIdentityCache(userId, user.username);
+        const freshUser = await Repository.findByUuid(userId).catch((error) => {
+            Logger.warn('[ProfileService:updateProfile] Fresh profile reload failed after update.', { error: error.message });
+            return null;
+        });
+
+        // Clear identity caches in the background; the response already returns the fresh profile projection.
+        CacheService.invalidateIdentityCache(userId, user.username).catch((error) => {
+            Logger.warn('[ProfileService:updateProfile] Cache invalidation failed after update.', { error: error.message });
+        });
         
-        return TransformUtils.formatUser(updatedUser);
+        return TransformUtils.formatUser(freshUser || updatedUser);
     }
 }
 

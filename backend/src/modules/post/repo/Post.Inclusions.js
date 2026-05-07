@@ -5,7 +5,7 @@
 const POST_STANDARD_INCLUDE = {
     user: { 
         select: { 
-            uuid: true, username: true, fullName: true, avatar: true, 
+            uuid: true, username: true, identityDomain: true, fullName: true, avatar: true, 
             isVerified: true
         } 
     },
@@ -27,7 +27,7 @@ const POST_STANDARD_INCLUDE = {
             stats: true,
             user: {
                 select: {
-                    uuid: true, username: true, fullName: true, avatar: true,
+                    uuid: true, username: true, identityDomain: true, fullName: true, avatar: true,
                     isVerified: true
                 }
             }

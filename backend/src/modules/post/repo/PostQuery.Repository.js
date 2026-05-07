@@ -114,14 +114,18 @@ class PostQueryRepository {
     async findByPartialUuid(idOrUuid, options = {}) {
         if (!idOrUuid) return null;
         const pattern = options.mode === 'suffix' ? `%${idOrUuid}` : `${idOrUuid}%`;
+        const limit = options.preferTopLevel ? 1 : 2;
         const matches = await this.prisma.$queryRaw`
             SELECT uuid::text AS uuid
             FROM posts
             WHERE replace(uuid::text, '-', '') LIKE ${pattern}
               AND deleted_at IS NULL
-            ORDER BY created_at DESC
-            LIMIT 2
+            ORDER BY
+              CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END,
+              created_at DESC
+            LIMIT ${limit}
         `;
+        if (options.preferTopLevel) return matches[0]?.uuid || null;
         return matches.length === 1 ? matches[0].uuid : null;
     }
 
@@ -243,7 +247,7 @@ class PostQueryRepository {
         const [repostRecords, totalReposts] = await Promise.all([
             this.prisma.repost.findMany({
                 where: repostWhere,
-                include: { post: { include: POST_STANDARD_INCLUDE }, user: { select: { uuid: true, username: true, fullName: true, avatar: true } } },
+                include: { post: { include: POST_STANDARD_INCLUDE }, user: { select: { uuid: true, username: true, identityDomain: true, fullName: true, avatar: true } } },
                 orderBy: { createdAt: 'desc' },
                 take: limit,
                 skip
@@ -327,7 +331,7 @@ class PostQueryRepository {
                 where: { userId },
                 include: { 
                     post: { include: POST_STANDARD_INCLUDE },
-                    user: { select: { uuid: true, username: true, fullName: true, avatar: true } }
+                    user: { select: { uuid: true, username: true, identityDomain: true, fullName: true, avatar: true } }
                 },
                 orderBy: { createdAt: 'desc' },
                 take: limit,

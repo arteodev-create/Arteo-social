@@ -11,7 +11,11 @@ datasource db {
 model User {
   uuid                   String          @id @default(uuid()) @db.Uuid
   supabaseAuthId         String?         @unique @map("supabase_auth_id") @db.Uuid
-  username               String          @unique @db.VarChar(50)
+  username               String          @db.VarChar(50)
+  identityDomain         String          @default("arteosocial.com") @map("identity_domain") @db.VarChar(255)
+  actorUri               String?         @unique @map("actor_uri") @db.VarChar(512)
+  inboxUrl               String?         @map("inbox_url") @db.VarChar(512)
+  outboxUrl              String?         @map("outbox_url") @db.VarChar(512)
   email                  String          @unique @db.VarChar(255)
   password               String          @db.VarChar(255)
   fullName               String          @default("") @map("full_name") @db.VarChar(100)
@@ -62,7 +66,10 @@ model User {
   reposts                Repost[]
   algorithms             UserAlgorithm[]
 
+  @@unique([username, identityDomain])
   @@index([username])
+  @@index([identityDomain])
+  @@index([actorUri])
   @@index([email])
   @@index([status])
   @@index([createdAt])
@@ -348,6 +355,7 @@ model Plugin {
   isPublic       Boolean         @default(false) @map("is_public")
   version        String          @default("1.0.0") @map("version") @db.VarChar(20)
   blocksMetadata Json            @default("[]") @map("blocks_metadata")
+  installedFromId String?         @map("installed_from_id") @db.Uuid
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
   deletedAt      DateTime?       @map("deleted_at")
@@ -356,6 +364,7 @@ model Plugin {
   author         User            @relation(fields: [authorId], references: [uuid], onDelete: Cascade)
   categoryRel    PluginCategory? @relation(fields: [categoryId], references: [uuid])
 
+  @@index([installedFromId])
   @@map("plugins")
 }
 

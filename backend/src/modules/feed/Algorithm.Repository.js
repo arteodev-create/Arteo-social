@@ -1,4 +1,7 @@
 const BaseRepository = require('../../core/Base.Repository');
+const StringUtils = require('../../utils/String.Utils');
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Algorithm Repository
@@ -11,6 +14,13 @@ class AlgorithmRepository extends BaseRepository {
     }
 
     // Mapping offloaded to Platinum TransformUtils layer.
+    get _userSelect() {
+        return { uuid: true, username: true, identityDomain: true, fullName: true, avatar: true };
+    }
+
+    get _standardInclude() {
+        return { user: { select: this._userSelect } };
+    }
 
 
     /**
@@ -34,12 +44,36 @@ class AlgorithmRepository extends BaseRepository {
         try {
             const result = await this.model.findFirst({
                 where: { userId, isActive: true },
-                select: { uuid: true, name: true, weights: true, description: true, isPublic: true, isActive: true, version: true, createdAt: true }
+                select: {
+                    uuid: true,
+                    name: true,
+                    weights: true,
+                    pipeline: true,
+                    description: true,
+                    isPublic: true,
+                    isActive: true,
+                    version: true,
+                    tags: true,
+                    installedFromId: true,
+                    createdAt: true
+                }
             });
             return this._mapEntity(result);
         } catch (error) {
             return null;
         }
+    }
+
+    async findActiveDetailed(userId) {
+        if (!userId) return null;
+        const result = await this.model.findFirst({
+            where: { userId, isActive: true, deletedAt: null },
+            include: {
+                user: { select: this._userSelect }
+            },
+            orderBy: { updatedAt: 'desc' }
+        });
+        return this._mapEntity(result);
     }
 
     /**
@@ -73,7 +107,7 @@ class AlgorithmRepository extends BaseRepository {
             const results = await this.model.findMany({
                 where: { isPublic: true, deletedAt: null },
                 include: {
-                    user: { select: { uuid: true, username: true, fullName: true, avatar: true } }
+                    user: { select: this._userSelect }
                 },
                 orderBy: { createdAt: 'desc' }
             });
@@ -84,6 +118,30 @@ class AlgorithmRepository extends BaseRepository {
         }
     }
 
+    async findByIdentifier(identifier, userId) {
+        if (!identifier) return null;
+        if (UUID_PATTERN.test(identifier)) return this.findByUuid(identifier);
+
+        const readableSlug = StringUtils.slugify(identifier);
+        const algorithms = await this.model.findMany({
+            where: {
+                deletedAt: null,
+                OR: userId
+                    ? [{ isPublic: true }, { userId }]
+                    : [{ isPublic: true }]
+            },
+            include: {
+                user: { select: this._userSelect }
+            },
+            orderBy: [
+                { isPublic: 'desc' },
+                { createdAt: 'desc' }
+            ]
+        });
+
+        return this._mapEntity(algorithms.find((algorithm) => StringUtils.slugify(algorithm.name) === readableSlug));
+    }
+
     /**
      * Retrieves all algorithms belonging to a user.
      */
@@ -91,7 +149,7 @@ class AlgorithmRepository extends BaseRepository {
         return await this.model.findMany({
             where: { userId, deletedAt: null },
             include: {
-                user: { select: { uuid: true, username: true, fullName: true, avatar: true } }
+                user: { select: this._userSelect }
             },
             orderBy: { createdAt: 'desc' }
         });
@@ -103,7 +161,7 @@ class AlgorithmRepository extends BaseRepository {
     async findFeatured(limit = 10) {
         const allPublic = await this.model.findMany({
             where: { isPublic: true, deletedAt: null },
-            include: { user: { select: { uuid: true, username: true, fullName: true, avatar: true } } }
+            include: { user: { select: this._userSelect } }
         });
 
         // Shuffle and take limit
@@ -133,7 +191,7 @@ class AlgorithmRepository extends BaseRepository {
                     ]
                 },
             include: {
-                user: { select: { uuid: true, username: true, fullName: true, avatar: true } }
+                user: { select: this._userSelect }
             },
             orderBy: [
                 { isPublic: 'desc' },

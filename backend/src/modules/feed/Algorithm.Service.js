@@ -4,8 +4,12 @@ const CacheService = require('../../infra/cache/Cache.Service');
 const AlgorithmRepository = require('./Algorithm.Repository');
 const AlgorithmRegistry = require('./Algorithm.Registry');
 const PluginRepository = require('../plugin/Plugin.Repository');
+const PluginService = require('../plugin/Plugin.Service');
 const { AppError, NotFoundError, AuthorizationError, ErrorCodes } = require('../../core/Errors');
 const { ALGORITHM_CONSTANTS } = require('../../core/Constants');
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_GLOBAL_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 
 /**
  * AlgorithmService: Discovery & Content Delivery Engine.
@@ -159,6 +163,47 @@ class AlgorithmService {
         return { 
             uuid: algo.uuid, 
             name: algo.name, 
+            version: algo.version,
+            description: algo.description,
+            installedFromId: algo.installedFromId,
+            pluginDependencies: Array.isArray(weights?.pluginDependencies) ? weights.pluginDependencies : [],
+            pipeline,
+            limit_per_author: weights?.limit_per_author || algo.limit_per_author || 1
+        };
+    }
+
+    /**
+     * Resolves the exact feed algorithm requested by the client.
+     */
+    async getAlgorithmForFeed(uuid, userId) {
+        if (!uuid || uuid === '-1') return null;
+
+        const algo = await AlgorithmRepository.findByUuid(uuid);
+        if (!algo) return null;
+
+        const isOwner = String(algo.userId || '').toLowerCase() === String(userId || '').toLowerCase();
+        if (!isOwner && !algo.isPublic) {
+            throw new AuthorizationError('Access denied: Confidential algorithm.');
+        }
+
+        let weights = algo.weights;
+        if (typeof weights === 'string' && weights.trim().startsWith('{')) {
+            try {
+                weights = JSON.parse(weights);
+            } catch (e) {
+                Logger.error(`[AlgorithmService] Weights parse failure for selected feed ${uuid}`);
+            }
+        }
+
+        const pipeline = algo.pipeline || weights?.code || weights?.pipeline || (Array.isArray(weights) ? weights : []);
+
+        return {
+            uuid: algo.uuid,
+            name: algo.name,
+            version: algo.version,
+            description: algo.description,
+            installedFromId: algo.installedFromId,
+            pluginDependencies: Array.isArray(weights?.pluginDependencies) ? weights.pluginDependencies : [],
             pipeline,
             limit_per_author: weights?.limit_per_author || algo.limit_per_author || 1
         };
@@ -198,6 +243,7 @@ class AlgorithmService {
 
             // 1. Plugin/Registry Blocks (ABS v15.0)
             if (id && id.includes(':')) {
+                await this._ensurePluginBlockRegistered(id);
                 currentPosts = await AlgorithmRegistry.executeBlock(id, currentPosts, stepConfig, context);
                 continue;
             }
@@ -228,6 +274,42 @@ class AlgorithmService {
                     }
                     return post;
                 });
+            } else if (command === 'boost') {
+                const target = String(config.target || '').toLowerCase();
+                if (['recent', 'fresh', 'freshness'].includes(target)) {
+                    currentPosts = await this.BUILTIN_BLOCKS['builtin_freshness'](currentPosts, { weight: config.weight });
+                } else if (['popular', 'interaction', 'interactions'].includes(target)) {
+                    currentPosts = await this.BUILTIN_BLOCKS['builtin_interactions'](currentPosts, { weight: config.weight });
+                } else if (['media', 'visual', 'image'].includes(target)) {
+                    const weight = parseFloat(config.weight || 1);
+                    currentPosts = currentPosts.map(p => {
+                        const hasMedia = p.media && p.media.length > 0;
+                        const boost = hasMedia ? weight : 0;
+                        const post = { ...p, _score: (p._score || 0) + boost };
+                        if (hasMedia) this._addExplanation(post, 'Media', `Boosted by ${boost.toFixed(2)} for media`);
+                        return post;
+                    });
+                }
+            } else if (command === 'filter_out') {
+                const criterion = String(config.criterion || '').toLowerCase();
+                if (criterion) {
+                    currentPosts = currentPosts.filter(p => {
+                        const haystack = [
+                            p.topic,
+                            p.content,
+                            p.user?.username,
+                            ...(Array.isArray(p.tags) ? p.tags : [])
+                        ].filter(Boolean).join(' ').toLowerCase();
+                        return !haystack.includes(criterion);
+                    });
+                }
+            } else if (command === 'use' && config.plugin) {
+                try {
+                    await this._ensurePluginBlockRegistered(config.plugin);
+                    currentPosts = await AlgorithmRegistry.executeBlock(config.plugin, currentPosts, stepConfig, context);
+                } catch (error) {
+                    Logger.warn(`[AlgorithmService] Plugin block skipped: ${config.plugin} (${error.message})`);
+                }
             }
         }
 
@@ -242,13 +324,31 @@ class AlgorithmService {
             currentPosts.sort((a, b) => (b._score || 0) - (a._score || 0));
         }
 
-        return currentPosts.map(p => ({
-            ...p,
-            _whiteBoxExplanation: {
-                totalScore: p._score?.toFixed(4),
-                steps: normalizedPipeline.map(s => s.id || s.command)
-            }
-        }));
+        const executedSteps = normalizedPipeline
+            .map(s => s.id || s.command)
+            .filter(Boolean);
+
+        return currentPosts.map(p => {
+            const existingExplanation = p._whiteBoxExplanation || {};
+            return {
+                ...p,
+                _whiteBoxExplanation: {
+                    ...existingExplanation,
+                    totalScore: Number.isFinite(Number(p._score)) ? Number(p._score).toFixed(4) : '0.0000',
+                    steps: executedSteps,
+                    path: Array.isArray(existingExplanation.path) ? existingExplanation.path : [],
+                    algorithm: context.algorithm ? {
+                        uuid: context.algorithm.uuid,
+                        name: context.algorithm.name,
+                        version: context.algorithm.version,
+                        installedFromId: context.algorithm.installedFromId
+                    } : null,
+                    pluginDependencies: Array.isArray(context.algorithm?.pluginDependencies)
+                        ? context.algorithm.pluginDependencies
+                        : []
+                }
+            };
+        });
     }
 
     /**
@@ -273,7 +373,7 @@ class AlgorithmService {
                     pipeline.push({ command: 'filter_out', config: { criterion: match[1] } });
                 }
             } else if (trimmed.startsWith('use ')) {
-                const match = trimmed.match(/use\s+([\w_]+)\(\)/);
+                const match = trimmed.match(/use\s+([\w:-]+)\(\)/);
                 if (match) {
                     pipeline.push({ command: 'use', config: { plugin: match[1] } });
                 }
@@ -283,20 +383,179 @@ class AlgorithmService {
         return pipeline;
     }
 
+    async _ensurePluginBlockRegistered(blockId) {
+        if (!blockId || !String(blockId).includes(':') || AlgorithmRegistry.getBlock(blockId)) return;
+        const [pluginUuid] = String(blockId).split(':');
+        if (!UUID_PATTERN.test(pluginUuid)) return;
+
+        const plugin = await PluginRepository.findByUuid(pluginUuid);
+        if (plugin?.blocksMetadata) {
+            AlgorithmRegistry.registerPlugin(plugin.uuid, plugin.blocksMetadata);
+        }
+    }
+
+    _normalizeObject(value, fallback) {
+        if (value === undefined || value === null) return fallback;
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed || (!trimmed.startsWith('{') && !trimmed.startsWith('['))) return value;
+            try {
+                return JSON.parse(trimmed);
+            } catch {
+                return value;
+            }
+        }
+        return value;
+    }
+
+    _collectPluginDependencyIds(weights, pipeline) {
+        const ids = new Set();
+        const visit = (value, key = '') => {
+            if (!value) return;
+            if (typeof value === 'string') {
+                if (UUID_PATTERN.test(value)) {
+                    ids.add(value);
+                } else {
+                    const matches = value.match(UUID_GLOBAL_PATTERN) || [];
+                    matches.forEach((match) => ids.add(match));
+                }
+                return;
+            }
+            if (Array.isArray(value)) {
+                value.forEach((item) => visit(item, key));
+                return;
+            }
+            if (typeof value !== 'object') return;
+
+            const dependencyKeys = new Set([
+                'pluginId',
+                'pluginUuid',
+                'sourcePluginId',
+                'installedPluginId',
+                'localPluginId',
+                'uuid'
+            ]);
+
+            Object.entries(value).forEach(([childKey, childValue]) => {
+                if (dependencyKeys.has(childKey) && typeof childValue === 'string' && UUID_PATTERN.test(childValue)) {
+                    ids.add(childValue);
+                    return;
+                }
+                if (['pluginDependencies', 'pluginPacks', 'plugins', 'dependencies', 'pipeline', 'config'].includes(childKey) || key === 'pluginDependencies') {
+                    visit(childValue, childKey);
+                }
+            });
+        };
+
+        visit(weights);
+        visit(pipeline);
+        return Array.from(ids);
+    }
+
+    _rewritePluginIds(value, idMap) {
+        if (!value || idMap.size === 0) return value;
+        if (typeof value === 'string') {
+            if (idMap.has(value)) return idMap.get(value);
+            return Array.from(idMap.entries()).reduce(
+                (text, [sourceId, localId]) => text.replaceAll(sourceId, localId),
+                value
+            );
+        }
+        if (Array.isArray(value)) return value.map((item) => this._rewritePluginIds(item, idMap));
+        if (typeof value !== 'object') return value;
+        return Object.entries(value).reduce((acc, [key, child]) => {
+            acc[key] = this._rewritePluginIds(child, idMap);
+            return acc;
+        }, {});
+    }
+
+    async _resolvePluginDependenciesForUser(userId, weightsInput, pipelineInput) {
+        const weights = this._normalizeObject(weightsInput, {});
+        const pipeline = this._normalizeObject(pipelineInput, []);
+        const dependencyIds = this._collectPluginDependencyIds(weights, pipeline);
+        const idMap = new Map();
+        const dependencies = [];
+        const resolvedSourceIds = new Set();
+
+        for (const pluginId of dependencyIds) {
+            const candidate = await PluginRepository.findByUuid(pluginId);
+            if (!candidate) throw new NotFoundError(`Plugin dependency ${pluginId}`);
+
+            const isLocalDownloadedCopy = Boolean(candidate.installedFromId) &&
+                String(candidate.authorId || '').toLowerCase() === String(userId || '').toLowerCase();
+            const source = isLocalDownloadedCopy
+                ? (await PluginRepository.findByUuid(candidate.installedFromId)) || candidate
+                : candidate;
+            const localCopy = isLocalDownloadedCopy ? candidate : null;
+            if (resolvedSourceIds.has(source.uuid)) {
+                if (localCopy) idMap.set(localCopy.uuid, localCopy.uuid);
+                continue;
+            }
+            resolvedSourceIds.add(source.uuid);
+
+            const isOwner = String(source.authorId || '').toLowerCase() === String(userId || '').toLowerCase();
+            if (!isOwner && !source.isPublic) {
+                throw new AuthorizationError('Algorithm depends on a private plugin you cannot access.');
+            }
+
+            const existingLocal = isOwner ? null : (localCopy || await PluginRepository.findInstalledCopy(source, userId));
+            const local = isOwner ? source : (existingLocal || await PluginService.install(source.uuid, userId));
+            idMap.set(source.uuid, local.uuid);
+            if (localCopy) idMap.set(localCopy.uuid, localCopy.uuid);
+            dependencies.push({
+                sourcePluginId: source.uuid,
+                localPluginId: local.uuid,
+                name: source.name,
+                version: source.version || '1.0.0',
+                blockCount: Array.isArray(source.blocksMetadata) ? source.blocksMetadata.length : 0,
+                wasDownloaded: !isOwner && !existingLocal && local.uuid !== source.uuid,
+                alreadyDownloaded: !isOwner && Boolean(existingLocal),
+                alreadyAvailable: isOwner || Boolean(existingLocal) || local.uuid === source.uuid
+            });
+        }
+
+        const resolvedWeights = typeof weights === 'object' && !Array.isArray(weights)
+            ? {
+                ...this._rewritePluginIds(weights, idMap),
+                pluginDependencies: dependencies
+            }
+            : weights;
+
+        return {
+            weights: resolvedWeights,
+            pipeline: this._rewritePluginIds(pipeline, idMap),
+            dependencies
+        };
+    }
+
+    _buildInstallMeta(resolved) {
+        const dependencies = Array.isArray(resolved?.dependencies) ? resolved.dependencies : [];
+        const downloadedDependencies = dependencies.filter((dependency) => dependency.wasDownloaded);
+        return {
+            dependencies,
+            downloadedDependencies,
+            dependencySummary: {
+                total: dependencies.length,
+                downloaded: downloadedDependencies.length
+            }
+        };
+    }
+
     /**
      * Management: Creation sequence.
      */
     async create(userId, data) {
         const { name, weights, description, pipeline, tags, version, isActive, isPublic } = data;
         const finalName = await AlgorithmRepository.findUniqueName(userId, name);
+        const resolved = await this._resolvePluginDependenciesForUser(userId, weights || {}, pipeline || []);
         
         Logger.info(`[AlgorithmService:Created] Establish: ${finalName} for identity ${userId}`);
 
         return await AlgorithmRepository.create({
             userId,
             name: finalName,
-            weights: weights || {},
-            pipeline: pipeline || '[]',
+            weights: resolved.weights || {},
+            pipeline: resolved.pipeline || [],
             tags: tags || [],
             isActive: !!isActive,
             isPublic: !!isPublic,
@@ -316,12 +575,15 @@ class AlgorithmService {
         Logger.info(`[AlgorithmService:Updated] Strategic rotation: ${uuid} for identity ${userId}`);
 
         const { name, weights, description, pipeline, tags, version, isActive, isPublic } = data;
+        const nextWeights = weights !== undefined ? weights : algo.weights;
+        const nextPipeline = pipeline !== undefined ? pipeline : algo.pipeline;
+        const resolved = await this._resolvePluginDependenciesForUser(userId, nextWeights, nextPipeline);
 
         return await AlgorithmRepository.update(uuid, {
             name: name !== undefined ? name : algo.name,
-            weights: weights !== undefined ? weights : algo.weights,
+            weights: resolved.weights,
             description: description !== undefined ? description : algo.description,
-            pipeline: pipeline !== undefined ? pipeline : algo.pipeline,
+            pipeline: resolved.pipeline,
             tags: tags !== undefined ? tags : algo.tags,
             version: version !== undefined ? version : algo.version,
             isActive: isActive !== undefined ? !!isActive : algo.isActive,
@@ -333,60 +595,42 @@ class AlgorithmService {
      * Management: Pipeline activation.
      */
     async activate(uuid, userId) {
-        console.log('--- ACTIVATE REQUEST ---');
-        console.log('User ID from Request:', userId);
-        
         const algo = await AlgorithmRepository.findByUuid(uuid);
-        if (!algo) {
-            Logger.error(`[AlgorithmService:Error] Not found algorithm with UUID: ${uuid}`);
-            throw new NotFoundError('Algorithm not found');
-        }
-
-        console.log('Algorithm Owner:', algo.userId);
-        console.log('Algorithm isPublic:', algo.isPublic);
+        if (!algo) throw new NotFoundError('Algorithm not found');
 
         const normalizedCurrentUserId = String(userId || '').toLowerCase().trim();
         const normalizedOwnerId = String(algo.userId || '').toLowerCase().trim();
-        
-        // NẾU KHÔNG CÓ USERID (401), CHÚNG TA NÊN BÁO LỖI AUTH TRƯỚC
-        if (!normalizedCurrentUserId || normalizedCurrentUserId === 'undefined' || normalizedCurrentUserId === 'null' || !userId) {
-            throw new AuthorizationError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+        if (!normalizedCurrentUserId || normalizedCurrentUserId === 'undefined' || normalizedCurrentUserId === 'null') {
+            throw new AuthorizationError('Session expired. Please sign in again.');
         }
 
         const isOwner = normalizedOwnerId === normalizedCurrentUserId;
         const isPublic = String(algo.isPublic) === 'true' || algo.isPublic === true || algo.isPublic === 1;
+        let activationTarget = algo;
 
         if (!isOwner) {
             if (!isPublic) {
-                Logger.error(`[AlgorithmService:Denied] Access Denied. Owner is ${normalizedOwnerId}, requester is ${normalizedCurrentUserId}`);
-                throw new AuthorizationError('Quyền truy cập bị từ chối: Thuật toán này là riêng tư.');
+                Logger.error(`[AlgorithmService:Denied] Access denied. Owner is ${normalizedOwnerId}, requester is ${normalizedCurrentUserId}`);
+                throw new AuthorizationError('Access denied: this algorithm is private.');
             }
-            
-            Logger.info(`[AlgorithmService:AutoInstall] Bắt đầu tự động cài đặt thuật toán công khai cho ${userId}...`);
-            await this.install(uuid, userId);
+            const installResult = await this.install(uuid, userId);
+            activationTarget = installResult.algorithm || installResult;
         }
 
         await AlgorithmRepository.deactivateAll(userId);
-        
-        // Sau khi install (nếu có), chúng ta cần tìm lại cái thuật toán mà người dùng đang sở hữu (bản clone) để activate
-        const ownedAlgo = await AlgorithmRepository.model.findFirst({
-            where: { 
-                userId, 
-                OR: [
-                    { uuid: algo.uuid },
-                    { installedFromId: algo.uuid }
-                ],
-                deletedAt: null 
-            }
-        });
 
-        if (!ownedAlgo) throw new AppError('Lỗi kích hoạt: Không tìm thấy bản sao sở hữu.', 500);
+        const ownedAlgo = activationTarget.userId === userId
+            ? activationTarget
+            : await AlgorithmRepository.model.findFirst({
+                where: { userId, installedFromId: algo.uuid, deletedAt: null },
+                orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }]
+            });
 
-        Logger.info(`[AlgorithmService:Activated] Thuật toán ${ownedAlgo.uuid} đã được kích hoạt cho người dùng ${userId}`);
-        
-        // Cache Invalidation
+        if (!ownedAlgo) throw new AppError('Activation failed: owned algorithm copy was not found.', 500);
+
         CacheService.invalidateFeedPatterns(userId).catch(() => {});
-        
+        CacheService.invalidateDiscoveryCache().catch(() => {});
+
         return await AlgorithmRepository.update(ownedAlgo.uuid, { isActive: true });
     }
 
@@ -404,18 +648,49 @@ class AlgorithmService {
             throw new AppError('Discovery access denied: Algorithm is private.', 403, ErrorCodes.FORBIDDEN);
         }
 
-        // CHỐNG TRÙNG LẶP: Kiểm tra xem đã cài từ nguồn này chưa
+        const resolved = await this._resolvePluginDependenciesForUser(
+            userId,
+            original.weights || {},
+            original.pipeline || []
+        );
+
+        if (isOwner) {
+            return {
+                algorithm: original,
+                ...this._buildInstallMeta(resolved)
+            };
+        }
+
         const existingClone = await AlgorithmRepository.model.findFirst({
-            where: { 
-                userId, 
+            where: {
+                userId,
                 installedFromId: original.uuid,
-                deletedAt: null 
-            }
+                deletedAt: null
+            },
+            orderBy: [
+                { isPinned: 'desc' },
+                { isActive: 'desc' },
+                { updatedAt: 'desc' }
+            ]
         });
 
         if (existingClone) {
-            Logger.info(`[AlgorithmService:Install] User ${userId} already has a clone of ${uuid}. Returning existing.`);
-            return existingClone;
+            Logger.info(`[AlgorithmService:Install] User ${userId} already has a clone of ${uuid}. Refreshing existing clone.`);
+            const algorithm = await AlgorithmRepository.update(existingClone.uuid, {
+                weights: resolved.weights || {},
+                pipeline: resolved.pipeline || [],
+                tags: original.tags || [],
+                changelog: original.changelog || [],
+                description: original.description,
+                shortDescription: original.shortDescription,
+                imageUrl: original.imageUrl,
+                version: original.version,
+                deletedAt: null
+            });
+            return {
+                algorithm,
+                ...this._buildInstallMeta(resolved)
+            };
         }
 
         const finalName = await AlgorithmRepository.findUniqueName(userId, original.name);
@@ -423,8 +698,12 @@ class AlgorithmService {
         const installed = await AlgorithmRepository.create({
             userId,
             name: finalName,
-            weights: original.weights || {},
+            weights: resolved.weights || {},
+            pipeline: resolved.pipeline || [],
+            tags: original.tags || [],
+            changelog: original.changelog || [],
             description: original.description,
+            shortDescription: original.shortDescription,
             imageUrl: original.imageUrl,
             version: original.version,
             installedFromId: original.uuid,
@@ -435,12 +714,13 @@ class AlgorithmService {
         Logger.info(`[AlgorithmService:Installed] Discovery cloning successful: ${original.uuid} -> ${installed.uuid}`);
 
         await AlgorithmRepository.update(uuid, { usageCount: { increment: 1 } });
-        return installed;
+        CacheService.invalidateFeedPatterns(userId).catch(() => {});
+        return {
+            algorithm: installed,
+            ...this._buildInstallMeta(resolved)
+        };
     }
 
-    /**
-     * Management: Toggling operational state.
-     */
     async toggleActive(uuid, userId) {
         const algo = await AlgorithmRepository.findByUuid(uuid);
         if (!algo) throw new NotFoundError('Algorithm');
@@ -489,10 +769,10 @@ class AlgorithmService {
             }
             
             Logger.info(`[AlgorithmService:AutoInstallBeforePin] User ${userId} is pinning public algo ${uuid}. Installing clone first...`);
-            const installed = await this.install(uuid, userId);
+            const installResult = await this.install(uuid, userId);
             
             // Chuyển đối tượng algo sang bản clone vừa tạo
-            algo = installed;
+            algo = installResult.algorithm || installResult;
         }
 
         const pinnedCount = await AlgorithmRepository.countPinned(userId);
@@ -503,8 +783,8 @@ class AlgorithmService {
         const lastPin = await AlgorithmRepository.findLastPin(userId);
         const newOrder = (lastPin?.pinOrder || 0) + 1;
 
-        Logger.info(`[AlgorithmService:Pinned] Algorithm ${uuid} pinned for user ${userId} at position #${newOrder}`);
-        return await AlgorithmRepository.update(uuid, { isPinned: true, pinOrder: newOrder });
+        Logger.info(`[AlgorithmService:Pinned] Algorithm ${algo.uuid} pinned for user ${userId} at position #${newOrder}`);
+        return await AlgorithmRepository.update(algo.uuid, { isPinned: true, pinOrder: newOrder });
     }
 
     /**

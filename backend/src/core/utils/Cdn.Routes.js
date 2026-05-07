@@ -19,7 +19,8 @@ router.get('/:key(*)', optionalAuth, async (req, res) => {
 
     // Platinum Path Validation (Security Hardening)
     const isTraversing = key.includes('..') || key.includes('%2e%2e');
-    const isAllowedPrefix = key.startsWith('media/') || key.startsWith('avatars/') || key.startsWith('plugins/');
+    const allowedPrefixes = ['media/', 'avatar/', 'avatars/', 'coverPhoto/', 'cover/', 'image/', 'images/', 'plugins/', 'videos/'];
+    const isAllowedPrefix = allowedPrefixes.some((prefix) => key.startsWith(prefix));
 
     if (isTraversing || !isAllowedPrefix) {
         Logger.warn(`[CdnProxy] Unauthorized access attempt blocked: ${key}`);
@@ -27,6 +28,10 @@ router.get('/:key(*)', optionalAuth, async (req, res) => {
     }
 
     try {
+        if (!s3Client) {
+            return res.internalServerError({ message: 'Supabase Storage is not configured for media streaming.' });
+        }
+
         const command = new GetObjectCommand({
             Bucket: process.env.AWS_S3_BUCKET,
             Key: key

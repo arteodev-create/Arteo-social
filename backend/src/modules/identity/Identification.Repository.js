@@ -16,8 +16,8 @@ class IdentificationRepository extends BaseRepository {
     get _standardSelect() { return this.query._standardSelect; }
 
     // --- Query Delegations ---
-    async findByIdentifier(key, visitorId) {
-        return await this.query.findByIdentifier(key, visitorId);
+    async findByIdentifier(key, visitorId, domain) {
+        return await this.query.findByIdentifier(key, visitorId, domain);
     }
 
     async findByUuid(uuid, visitorId) {

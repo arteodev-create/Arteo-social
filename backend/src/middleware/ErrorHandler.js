@@ -58,9 +58,10 @@ const errorHandler = (err, req, res, next) => {
     } else if (err.name === 'ZodError') {
         statusCode = 400;
         errorResponse.code = ErrorCodes.VALIDATION_FAILED;
-        errorResponse.message = err.errors?.map((e) => e.message).join('. ') || 'Invalid input data.';
+        const issues = err.issues || err.errors || [];
+        errorResponse.message = issues.map((e) => e.message).join('. ') || 'Invalid input data.';
         errorResponse.data = {
-            errors: err.errors?.reduce((acc, e) => {
+            errors: issues.reduce((acc, e) => {
                 const key = e.path[0];
                 if (key) acc[key] = e.message;
                 return acc;

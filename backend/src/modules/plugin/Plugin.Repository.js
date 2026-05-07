@@ -1,4 +1,7 @@
 const BaseRepository = require('../../core/Base.Repository');
+const StringUtils = require('../../utils/String.Utils');
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Plugin Repository
@@ -8,6 +11,10 @@ const BaseRepository = require('../../core/Base.Repository');
 class PluginRepository extends BaseRepository {
     constructor() {
         super('plugin');
+    }
+
+    get _authorSelect() {
+        return { uuid: true, username: true, identityDomain: true, fullName: true, avatar: true, isVerified: true };
     }
 
     /**
@@ -36,7 +43,7 @@ class PluginRepository extends BaseRepository {
             const plugins = await this.model.findMany({
                 where: { ...where, deletedAt: null },
                 include: {
-                    author: { select: { uuid: true, username: true, fullName: true, avatar: true, isVerified: true } },
+                    author: { select: this._authorSelect },
                     categoryRel: true
                 },
                 orderBy: { createdAt: 'desc' }
@@ -54,11 +61,36 @@ class PluginRepository extends BaseRepository {
         const plugin = await this.model.findUnique({
             where: { uuid },
             include: {
-                author: { select: { uuid: true, username: true, fullName: true, avatar: true, isVerified: true } },
+                author: { select: this._authorSelect },
                 categoryRel: true
             }
         });
         return plugin?.deletedAt ? null : this.map(plugin);
+    }
+
+    async findByIdentifier(identifier, userId) {
+        if (!identifier) return null;
+        if (UUID_PATTERN.test(identifier)) return this.findByUuid(identifier);
+
+        const readableSlug = StringUtils.slugify(identifier);
+        const plugins = await this.model.findMany({
+            where: {
+                deletedAt: null,
+                OR: userId
+                    ? [{ isPublic: true }, { authorId: userId }]
+                    : [{ isPublic: true }]
+            },
+            include: {
+                author: { select: this._authorSelect },
+                categoryRel: true
+            },
+            orderBy: [
+                { isPublic: 'desc' },
+                { createdAt: 'desc' }
+            ]
+        });
+
+        return this.map(plugins.find((plugin) => StringUtils.slugify(plugin.name) === readableSlug));
     }
 
     async findInstalledCopy(source, userId) {
@@ -68,12 +100,13 @@ class PluginRepository extends BaseRepository {
                 authorId: userId,
                 deletedAt: null,
                 OR: [
+                    { installedFromId: source.uuid },
                     { name: source.name },
                     { code: source.code }
                 ]
             },
             include: {
-                author: { select: { uuid: true, username: true, fullName: true, avatar: true, isVerified: true } },
+                author: { select: this._authorSelect },
                 categoryRel: true
             },
             orderBy: { createdAt: 'desc' }
@@ -112,10 +145,11 @@ class PluginRepository extends BaseRepository {
                 isPublic: false,
                 version: source.version || '1.0.0',
                 blocksMetadata: source.blocksMetadata || [],
+                installedFromId: source.installedFromId || source.uuid,
                 tags: source.tags || []
             },
             include: {
-                author: { select: { uuid: true, username: true, fullName: true, avatar: true, isVerified: true } },
+                author: { select: this._authorSelect },
                 categoryRel: true
             }
         });

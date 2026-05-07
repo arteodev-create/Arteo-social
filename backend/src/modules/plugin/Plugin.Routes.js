@@ -6,30 +6,23 @@ const { authenticate, optionalAuth } = require('../../middleware/Auth');
 
 /**
  * Plugin Routes
- * API Surface for the Arteo Re-Code Extension Engine.
- * Standardized for structural purity per ABS v14.1 Platinum.
+ * Store/detail routes are public with optional auth; lifecycle mutations require auth.
  */
 
-// Extension Enumeration (Public/Personal)
 router.get('/', optionalAuth, PluginController.getAll);
 router.get('/public', optionalAuth, PluginController.getPublic);
-
-// Category Management (True Entities)
 router.get('/categories', optionalAuth, PluginCategoryController.getAll);
 
-// Protected Lifecycle
-router.use(authenticate);
-router.get('/my', PluginController.getOwned);
-router.post('/', PluginController.create);
-router.post('/:uuid/install', PluginController.install);
-router.get('/:uuid/download', PluginController.download);
-router.delete('/:uuid/install', PluginController.uninstall);
-router.get('/:uuid', PluginController.getById);
-router.put('/:uuid', PluginController.update);
-router.delete('/:uuid', PluginController.delete);
+router.get('/my', authenticate, PluginController.getOwned);
+router.post('/', authenticate, PluginController.create);
+router.post('/categories', authenticate, PluginCategoryController.create);
 
-// Category Establishment (Identity Verified)
-router.post('/categories', PluginCategoryController.create);
+router.get('/:identifier/download', optionalAuth, PluginController.download);
+router.get('/:identifier', optionalAuth, PluginController.getById);
 
-module.exports = router;
+router.post('/:uuid/install', authenticate, PluginController.install);
+router.delete('/:uuid/install', authenticate, PluginController.uninstall);
+router.put('/:uuid', authenticate, PluginController.update);
+router.delete('/:uuid', authenticate, PluginController.delete);
+
 module.exports = router;

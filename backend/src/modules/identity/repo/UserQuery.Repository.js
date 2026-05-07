@@ -1,5 +1,6 @@
 const Logger = require('../../../infra/logging/Logger.Service');
 const { POST_STATUS, POST_TYPES } = require('../../../core/Constants');
+const { DEFAULT_DOMAIN, isEmail, parseHandle, normalizeUsername } = require('../IdentityHandle');
 
 class UserQueryRepository {
     constructor(model, prisma) {
@@ -23,13 +24,13 @@ class UserQueryRepository {
                     }
                 }
             },
-            followers: { take: 3, orderBy: { createdAt: 'desc' }, select: { follower: { select: { avatar: true, username: true } } } }
+            followers: { take: 3, orderBy: { createdAt: 'desc' }, select: { follower: { select: { avatar: true, username: true, identityDomain: true } } } }
         };
     }
 
     get _mutationSelect() {
         return {
-            uuid: true, supabaseAuthId: true, username: true, email: true, password: true,
+            uuid: true, supabaseAuthId: true, username: true, identityDomain: true, actorUri: true, inboxUrl: true, outboxUrl: true, email: true, password: true,
             fullName: true, isVerified: true, role: true, status: true,
             isAdmin: true, avatar: true, language: true, bio: true, location: true,
             coverPhoto: true, website: true, createdAt: true,
@@ -59,22 +60,38 @@ class UserQueryRepository {
     }
 
     async _findBasicByIdentifier(key) {
+        const where = this._identifierWhere(key);
         return await this.model.findFirst({
-            where: { OR: [{ email: { equals: key, mode: 'insensitive' } }, { username: { equals: key, mode: 'insensitive' } }], deletedAt: null },
+            where,
             select: this._mutationSelect
         });
+    }
+
+    _identifierWhere(key, domain = DEFAULT_DOMAIN) {
+        const raw = String(key || '').trim();
+        if (isEmail(raw)) {
+            return { email: { equals: raw, mode: 'insensitive' }, deletedAt: null };
+        }
+
+        const parsed = parseHandle(raw, domain);
+        return {
+            username: { equals: parsed.username, mode: 'insensitive' },
+            identityDomain: { equals: parsed.domain, mode: 'insensitive' },
+            deletedAt: null
+        };
     }
 
     async _findBasicByUuid(uuid) {
         return await this.model.findUnique({ where: { uuid }, select: this._mutationSelect });
     }
 
-    async findByIdentifier(key, visitorId = null) {
+    async findByIdentifier(key, visitorId = null, domain = DEFAULT_DOMAIN) {
         try {
             let user;
+            const where = this._identifierWhere(key, domain);
             try {
                 user = await this.model.findFirst({
-                    where: { OR: [{ email: { equals: key, mode: 'insensitive' } }, { username: { equals: key, mode: 'insensitive' } }], deletedAt: null },
+                    where,
                     select: this._standardSelect
                 });
             } catch (error) {
@@ -131,8 +148,18 @@ class UserQueryRepository {
     }
 
     async searchUsers(query, limit = 20) {
+        const parsed = parseHandle(query);
+        const usernameQuery = normalizeUsername(query);
         const users = await this.model.findMany({
-            where: { OR: [{ username: { contains: query, mode: 'insensitive' } }, { fullName: { contains: query, mode: 'insensitive' } }], deletedAt: null, status: 'ACTIVE' },
+            where: {
+                OR: [
+                    { username: { contains: usernameQuery, mode: 'insensitive' } },
+                    { fullName: { contains: query, mode: 'insensitive' } },
+                    { identityDomain: { contains: parsed.domain, mode: 'insensitive' } }
+                ],
+                deletedAt: null,
+                status: 'ACTIVE'
+            },
             select: this._standardSelect,
             take: parseInt(limit),
             orderBy: { createdAt: 'desc' }

@@ -14,6 +14,7 @@ const IdentificationRepository = require('../identity/Identification.Repository'
 const MediaService = require('../media/Media.Service');
 const { createDevPost, isDevPostUuid } = require('./DevPost.Fixture');
 const PollService = require('./Poll.Service');
+const { decodePostRouteId } = require('../../utils/PostRouteId');
 
 /**
  * PostService: Central Hub for Post-related business logic.
@@ -27,10 +28,12 @@ class PostService {
         if (!idOrUuid) return null;
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrUuid);
         if (isUuid) return idOrUuid;
+        const decodedRouteUuid = decodePostRouteId(idOrUuid);
+        if (decodedRouteUuid) return decodedRouteUuid;
         const compactMatch = /^p([0-9a-z]+)$/i.exec(idOrUuid);
         if (compactMatch) {
             const suffix = parseInt(compactMatch[1], 36).toString(16).padStart(8, '0');
-            return await PostRepository.findByPartialUuid(suffix, { mode: 'suffix' });
+            return await PostRepository.findByPartialUuid(suffix, { mode: 'suffix', preferTopLevel: true });
         }
         
         return await PostRepository.findByPartialUuid(idOrUuid);
@@ -42,32 +45,51 @@ class PostService {
     async getFeed(currentUserId, options = {}) {
         const { page = 1, limit = 20, location, sort } = options;
         let activeAlgo = null;
+        const bypassAlgorithm = options.algorithmId === '-1';
         
-        if (!options.algorithmId && currentUserId) {
+        if (options.algorithmId && !bypassAlgorithm) {
+            activeAlgo = await AlgorithmService.getAlgorithmForFeed(options.algorithmId, currentUserId);
+        }
+
+        if (!activeAlgo && !options.algorithmId && !bypassAlgorithm && currentUserId) {
             activeAlgo = await AlgorithmService.getActiveAlgorithm(currentUserId);
             if (activeAlgo) options.algorithmId = activeAlgo.uuid || activeAlgo.name;
         }
 
         // ABS v14.1 Platinum: Khi chọn thuật toán hoặc Topic cụ thể (Forum), 
         // ưu tiên phạm vi Discovery (Global) để người dùng thấy được toàn bộ nội dung.
-        if (options.algorithmId || options.topic) {
+        if ((options.algorithmId && !bypassAlgorithm) || options.topic) {
             options.includeGlobal = true;
         }
 
-        const cacheKey = CacheService.generateFeedKey(currentUserId, options);
+        if (bypassAlgorithm) {
+            options.includeGlobal = true;
+        }
+
+        const cacheUserId = bypassAlgorithm ? null : currentUserId;
+        const cacheKey = CacheService.generateFeedKey(cacheUserId, options);
         // Tối ưu: Sử dụng SWR để đảm bảo tốc độ phản hồi tối đa
         try {
             return await this._getOrComputeSWR(cacheKey, async () => {
             // ABS v15.0 Platinum: Fetch a larger buffer (3x limit) to ensure 
             // the algorithm has enough variety to return a full page after diversification.
-            const fetchLimit = options.algorithmId ? limit * 2 : limit;
+            const fetchLimit = activeAlgo ? limit * 2 : limit;
             const skip = (page - 1) * limit; // Correct chronological anchor
 
-            const { posts, total } = await PostRepository.findFeed({ 
-                userId: currentUserId, page, limit: fetchLimit, skip, location, topic: options.topic, sort, includeGlobal: !!options.includeGlobal 
+            const { posts, total } = await PostRepository.findFeed({
+                userId: bypassAlgorithm ? null : currentUserId,
+                page,
+                limit: fetchLimit,
+                skip,
+                location,
+                topic: options.topic,
+                sort,
+                includeGlobal: !!options.includeGlobal
             });
 
-            const sortedPosts = await AlgorithmService.sortPostsByAlgorithm(posts, currentUserId, { userLocation: location, algorithm: activeAlgo });
+            const sortedPosts = bypassAlgorithm
+                ? posts
+                : await AlgorithmService.sortPostsByAlgorithm(posts, currentUserId, { userLocation: location, algorithm: activeAlgo });
             
             // Return only the requested 'limit' amount to the frontend
             const finalPosts = sortedPosts.slice(0, limit);
@@ -154,7 +176,10 @@ class PostService {
         if (!uuid) throw new NotFoundError('Post reference missing');
         if (isDevPostUuid(uuid)) return createDevPost();
         
-        const cacheKey = `post:${uuid}:${currentUserId || 'anon'}`;
+        const activeAlgo = currentUserId
+            ? await AlgorithmService.getActiveAlgorithm(currentUserId).catch(() => null)
+            : null;
+        const cacheKey = `post:${uuid}:${currentUserId || 'anon'}:${activeAlgo?.uuid || 'standard'}`;
         const cached = await CacheService.get(cacheKey);
         if (cached) return cached;
 
@@ -162,8 +187,9 @@ class PostService {
         if (!post) throw new NotFoundError('Post');
 
         // Cache ngắn hạn cho chi tiết bài viết (1 phút)
-        CacheService.set(cacheKey, post, 60).catch(() => {});
-        return post;
+        const explainedPost = await this._attachFeedExplanation(post, currentUserId, activeAlgo);
+        CacheService.set(cacheKey, explainedPost, 60).catch(() => {});
+        return explainedPost;
     }
 
     /**
@@ -464,6 +490,39 @@ class PostService {
             eventEmitter.emit(EVENTS.POST.COMMENTED, { userId, postId: post.parentId, comment: post });
         } else {
             eventEmitter.emit(EVENTS.POST.CREATED, { post });
+        }
+    }
+
+    async _attachFeedExplanation(post, currentUserId, activeAlgo = null) {
+        if (!currentUserId || !post) return post;
+        try {
+            const rankedPosts = await AlgorithmService.sortPostsByAlgorithm([post], currentUserId, { algorithm: activeAlgo });
+            const explained = rankedPosts.find(item => item.uuid === post.uuid);
+            if (explained?._whiteBoxExplanation) return explained;
+
+            if (!activeAlgo) return post;
+            return {
+                ...post,
+                _whiteBoxExplanation: {
+                    totalScore: '0.0000',
+                    steps: [],
+                    path: [{
+                        step: 'Active feed filter',
+                        reasoning: 'This post was opened directly and did not pass one or more active feed filters.',
+                        timestamp: new Date()
+                    }],
+                    algorithm: {
+                        uuid: activeAlgo.uuid,
+                        name: activeAlgo.name,
+                        version: activeAlgo.version,
+                        installedFromId: activeAlgo.installedFromId
+                    },
+                    pluginDependencies: Array.isArray(activeAlgo.pluginDependencies) ? activeAlgo.pluginDependencies : []
+                }
+            };
+        } catch (error) {
+            Logger.warn(`[PostService:FeedExplanation] Unable to explain post ${post.uuid}: ${error.message}`);
+            return post;
         }
     }
 

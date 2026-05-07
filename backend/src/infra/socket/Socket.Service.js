@@ -5,7 +5,6 @@ const IdentificationRepository = require('../../modules/identity/Identification.
 const { jwt: jwtConfig } = require('../../config');
 const { AppError, NotFoundError } = require('../../core/Errors');
 const TraceMiddleware = require('../../middleware/Trace');
-const { EVENTS } = require('../../events');
 
 /**
  * Socket.Service

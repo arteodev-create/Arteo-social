@@ -1,5 +1,5 @@
 const Logger = require('../logging/Logger.Service');
-const { redis } = require('../../config');
+const { redis } = require('../../config/Providers');
 
 class QueueService {
     constructor() {

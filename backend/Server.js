@@ -6,14 +6,19 @@ const Logger = require('./src/infra/logging/Logger.Service');
 const { config, prisma } = require('./src/config');
 const EmailQueueWorker = require('./src/infra/queue/EmailQueue.Worker');
 const PostService = require('./src/modules/post/Post.Service');
+const SocketService = require('./src/infra/socket/Socket.Service');
 
 const port = config.infra.port || 5000;
 const server = http.createServer(app);
+SocketService.initialize(server);
 
 const warmupRuntime = async () => {
     try {
         await prisma.$queryRaw`SELECT 1`;
-        await PostService.getFeed(null, { page: 1, limit: 20 });
+        await Promise.all([
+            PostService.getFeed(null, { page: 1, limit: 20 }),
+            PostService.getFeed(null, { page: 1, limit: 20, algorithmId: '-1' })
+        ]);
         Logger.info('Runtime warmup completed.');
     } catch (error) {
         Logger.warn('Runtime warmup skipped.', { error: error.message });

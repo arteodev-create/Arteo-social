@@ -12,6 +12,8 @@ const { interactionLimiter } = require('../../middleware/RateLimit');
 
 // Global Discovery Gallery
 router.get('/public', optionalAuth, AlgorithmController.getPublicAlgorithms);
+router.get('/active/current', authenticate, AlgorithmController.getActiveAlgorithm);
+router.get('/:identifier', optionalAuth, AlgorithmController.getAlgorithmById);
 
 // Personal Domain Lifecycle
 router.use(authenticate);
@@ -19,7 +21,6 @@ router.use(interactionLimiter);
 
 router.post('/', AlgorithmController.create);
 router.get('/', AlgorithmController.getUserAlgorithms);
-router.get('/:uuid', AlgorithmController.getAlgorithmById);
 router.put('/:uuid', AlgorithmController.update);
 router.delete('/:uuid', AlgorithmController.delete);
 

@@ -8,6 +8,47 @@ class MediaService {
         return encodeURIComponent(value).replace(/%2F/g, '/');
     }
 
+    buildCdnUrl(key) {
+        if (!key) return null;
+        return `/api/cdn/${this.encodePathSegment(key)}`;
+    }
+
+    extractStorageKeyFromUrl(value) {
+        if (!value || typeof value !== 'string') return null;
+        const decodedValue = decodeURIComponent(value.trim());
+        const bucket = process.env.AWS_S3_BUCKET;
+        const publicMarker = '/storage/v1/object/public/';
+        const s3Marker = '/storage/v1/s3/';
+
+        const extractAfterBucket = (path) => {
+            if (!path) return null;
+            if (bucket && path.startsWith(`${bucket}/`)) return path.slice(bucket.length + 1);
+            return /^(avatar|avatars|coverPhoto|cover|image|images|media|plugins|videos)\//.test(path) ? path : null;
+        };
+
+        if (decodedValue.startsWith('/api/cdn/')) {
+            return decodedValue.slice('/api/cdn/'.length);
+        }
+
+        const publicIndex = decodedValue.indexOf(publicMarker);
+        if (publicIndex !== -1) {
+            return extractAfterBucket(decodedValue.slice(publicIndex + publicMarker.length));
+        }
+
+        const s3Index = decodedValue.indexOf(s3Marker);
+        if (s3Index !== -1) {
+            return extractAfterBucket(decodedValue.slice(s3Index + s3Marker.length));
+        }
+
+        return null;
+    }
+
+    normalizeFileUrl(value) {
+        if (!value || typeof value !== 'string') return value || null;
+        const key = this.extractStorageKeyFromUrl(value);
+        return key ? this.buildCdnUrl(key) : value;
+    }
+
     /**
      * Resolves a Multer file object into a browser-accessible URL.
      * Supports both local disk storage and S3.
@@ -15,38 +56,19 @@ class MediaService {
     resolveFileUrl(file) {
         if (!file) return null;
 
-        // 1. Check for S3 location (Highest Priority)
-        if (file.location) return file.location;
+        // 1. Supabase Storage key via S3-compatible upload.
+        if (file.key) return this.buildCdnUrl(file.key);
 
-        // 2. Check for Local Filename (Multer Disk Storage)
+        // 2. Check for S3 location and normalize private Supabase public URLs.
+        if (file.location) return this.normalizeFileUrl(file.location);
+
+        // 3. Check for Local Filename (Multer Disk Storage)
         if (file.filename) return `/uploads/${file.filename}`;
 
-        // 3. Fallback to existing URL or Key-based reconstruction
-        if (file.url) return file.url;
-        if (file.key) {
-           const bucket = process.env.AWS_S3_BUCKET;
-           const endpoint = process.env.AWS_S3_ENDPOINT || '';
-           const cdnUrl = process.env.AWS_S3_CDN_URL;
-           const region = process.env.AWS_S3_REGION || process.env.AWS_REGION || 'ap-southeast-2';
-           const cleanCdn = cdnUrl ? cdnUrl.replace(/\/$/, '') : null;
-           const encodedBucket = this.encodePathSegment(bucket);
-           const encodedKey = this.encodePathSegment(file.key);
+        // 4. Fallback to existing URL.
+        if (file.url) return this.normalizeFileUrl(file.url);
 
-           if (cleanCdn) {
-              const base = cleanCdn.includes('/storage/v1/object/public') && !cleanCdn.endsWith(`/${encodedBucket}`)
-                ? `${cleanCdn}/${encodedBucket}`
-                : cleanCdn;
-              return `${base}/${encodedKey}`;
-           }
-
-           if (endpoint.includes('.supabase.co/storage/v1/s3')) {
-              return `${endpoint.replace('/storage/v1/s3', '/storage/v1/object/public')}/${encodedBucket}/${encodedKey}`;
-           }
-
-           return `https://${bucket}.s3.${region}.amazonaws.com/${encodedKey}`;
-        }
-
-        // 4. Dirty Path Fallback (Last Resort - cleaning absolute paths)
+        // 5. Dirty Path Fallback (Last Resort - cleaning absolute paths)
         if (file.path) {
             const basename = file.path.split(/[\\/]/).pop();
             return `/uploads/${basename}`;

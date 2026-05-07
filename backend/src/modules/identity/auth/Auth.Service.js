@@ -6,10 +6,13 @@ const CacheService = require('../../../infra/cache/Cache.Service');
 const SupabaseAuth = require('../../../infra/security/SupabaseAuth.Provider');
 const { AuthorizationError, ErrorCodes } = require('../../../core/Errors');
 const TransformUtils = require('../../../utils/Transform.Utils');
+const { DEFAULT_DOMAIN, parseHandle, isEmail } = require('../IdentityHandle');
 
 class AuthService {
-    async authenticate({ identifier, credential, ip, ua }) {
-        let user = await Repository.findByIdentifier(identifier);
+    async authenticate({ identifier, domain, credential, ip, ua }) {
+        const parsed = isEmail(identifier) ? null : parseHandle(identifier, domain || DEFAULT_DOMAIN);
+        const lookup = parsed ? `@${parsed.username}@${parsed.domain}` : identifier;
+        let user = await Repository.findByIdentifier(lookup);
         
         if (!user) {
             throw new AuthorizationError('Mật mã định danh không trùng khớp với dữ liệu mạng lưới Arteo.', { code: ErrorCodes.AUTH_INVALID_CREDS });

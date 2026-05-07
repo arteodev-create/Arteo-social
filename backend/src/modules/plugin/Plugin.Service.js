@@ -9,6 +9,29 @@ const { NotFoundError, AuthorizationError } = require('../../core/Errors');
  * Standardized for ABS v14.1 Platinum.
  */
 class PluginService {
+    async _attachSourcePlugin(plugin) {
+        if (!plugin?.installedFromId) return plugin;
+        const sourcePlugin = await PluginRepository.findByUuid(plugin.installedFromId);
+        return { ...plugin, sourcePlugin };
+    }
+
+    async _attachSourcePlugins(plugins) {
+        const sourceIds = [...new Set((plugins || [])
+            .map((plugin) => plugin?.installedFromId)
+            .filter(Boolean))];
+
+        if (sourceIds.length === 0) return plugins;
+
+        const sourceEntries = await Promise.all(
+            sourceIds.map(async (sourceId) => [sourceId, await PluginRepository.findByUuid(sourceId)])
+        );
+        const sourcesById = new Map(sourceEntries);
+
+        return plugins.map((plugin) => plugin?.installedFromId
+            ? { ...plugin, sourcePlugin: sourcesById.get(plugin.installedFromId) || null }
+            : plugin);
+    }
+
     /**
      * Retrieves all accessible plugins based on identity scope.
      */
@@ -17,29 +40,29 @@ class PluginService {
             ? { OR: [{ isPublic: true }, { authorId: userId }] }
             : { isPublic: true };
 
-        return await PluginRepository.findMany(where);
+        return await this._attachSourcePlugins(await PluginRepository.findMany(where));
     }
 
     async getPublic() {
-        return await PluginRepository.findMany({ isPublic: true });
+        return await this._attachSourcePlugins(await PluginRepository.findMany({ isPublic: true }));
     }
 
     async getOwned(userId) {
-        return await PluginRepository.findMany({ authorId: userId });
+        return await this._attachSourcePlugins(await PluginRepository.findMany({ authorId: userId }));
     }
 
     /**
      * Retrieves a specific plugin with ownership verification.
      */
-    async getById(uuid, userId) {
-        const plugin = await PluginRepository.findByUuid(uuid);
+    async getById(identifier, userId) {
+        const plugin = await PluginRepository.findByIdentifier(identifier, userId);
         if (!plugin) throw new NotFoundError('Plugin');
 
         if (!plugin.isPublic && plugin.authorId !== userId) {
             throw new AuthorizationError('Access denied: Confidential extension.');
         }
 
-        return plugin;
+        return await this._attachSourcePlugin(plugin);
     }
 
     /**
@@ -96,17 +119,17 @@ class PluginService {
         if (plugin.authorId === userId) return plugin;
 
         const existing = await PluginRepository.findInstalledCopy(plugin, userId);
-        if (existing) return existing;
+        if (existing) return await this._attachSourcePlugin(existing);
 
         Logger.info(`[PluginService] Installing library extension: ${uuid} for identity ${userId}`);
-        return await PluginRepository.cloneForUser(plugin, userId);
+        return await this._attachSourcePlugin(await PluginRepository.cloneForUser(plugin, userId));
     }
 
     /**
      * Produces a portable ReCode file payload for client-side download.
      */
-    async download(uuid, userId) {
-        const plugin = await this.getById(uuid, userId);
+    async download(identifier, userId) {
+        const plugin = await this.getById(identifier, userId);
         const safeName = plugin.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'arteo-plugin';
         return {
             filename: `${safeName}-${plugin.version || '1.0.0'}.recode`,
@@ -122,7 +145,7 @@ class PluginService {
         if (!plugin) throw new NotFoundError('Plugin');
         if (plugin.authorId !== userId) {
             const installed = await PluginRepository.findInstalledCopy(plugin, userId);
-            if (!installed) throw new NotFoundError('Installed plugin');
+            if (!installed) throw new NotFoundError('Downloaded plugin');
             return await PluginRepository.delete(installed.uuid);
         }
 

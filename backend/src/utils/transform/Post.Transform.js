@@ -1,11 +1,15 @@
 const UserTransform = require('./User.Transform');
+const StringUtils = require('../String.Utils');
+const { encodePostRouteId } = require('../PostRouteId');
+const MediaService = require('../../modules/media/Media.Service');
 
 class PostTransform {
     formatPost(post, currentUserId = null) {
         if (!post) return null;
         return {
             uuid: post.uuid,
-            shortId: post.shortId,
+            routeId: encodePostRouteId(post.uuid),
+            shortId: post.shortId || encodePostRouteId(post.uuid),
             userId: post.userId,
             content: post.content,
             type: post.type,
@@ -15,7 +19,13 @@ class PostTransform {
             visibility: post.visibility,
             createdAt: post.createdAt,
             user: UserTransform.formatUser(post.user),
-            media: post.media || [],
+            media: Array.isArray(post.media)
+                ? post.media.map((item) => ({
+                    ...item,
+                    url: MediaService.normalizeFileUrl(item.url),
+                    thumbnailUrl: MediaService.normalizeFileUrl(item.thumbnailUrl)
+                }))
+                : [],
             stats: post.stats || { likeCount: 0, replyCount: 0, repostCount: 0, quoteCount: 0 },
             isLiked: Array.isArray(post.likes) ? post.likes.length > 0 : !!post.isLiked,
             isReposted: post.isRepostedDisplay || (Array.isArray(post.reposts) ? post.reposts.length > 0 : !!post.isReposted),
@@ -42,6 +52,7 @@ class PostTransform {
         if (!algo) return null;
         return {
             uuid: algo.uuid,
+            slug: StringUtils.slugify(algo.name),
             userId: algo.userId,
             name: algo.name,
             description: algo.description,

@@ -18,6 +18,7 @@ const MetricsMiddleware = require('../middleware/Metrics');
 
 const routes = require('./routes');
 const sitemapRoutes = require('../modules/system/sitemap/Sitemap.Routes');
+const federationRoutes = require('../modules/federation/Federation.Routes');
 
 const LOCAL_ORIGINS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
@@ -110,6 +111,7 @@ const createApp = () => {
 
     registerObservabilityRoutes(app);
 
+    app.use('/', federationRoutes);
     app.use('/', sitemapRoutes);
     app.use('/api', routes);
 

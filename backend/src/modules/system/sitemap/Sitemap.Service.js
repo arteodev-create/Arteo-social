@@ -1,5 +1,7 @@
 const SitemapRepository = require('./Sitemap.Repository');
 const { config } = require('../../../config');
+const StringUtils = require('../../../utils/String.Utils');
+const { encodePostRouteId } = require('../../../utils/PostRouteId');
 
 const escapeXml = (value = '') => String(value)
     .replace(/&/g, '&amp;')
@@ -8,11 +10,7 @@ const escapeXml = (value = '') => String(value)
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
 
-const getPostRouteId = (uuid) => {
-    const compact = uuid.replace(/-/g, '');
-    const tail = compact.slice(-8);
-    return `p${parseInt(tail, 16).toString(36)}`;
-};
+const getPostRouteId = (uuid) => encodePostRouteId(uuid) || uuid;
 
 class SitemapService {
     /**
@@ -89,8 +87,9 @@ class SitemapService {
         }
 
         for (const algorithm of algorithms) {
+            const slug = StringUtils.slugify(algorithm.name) || algorithm.uuid;
             xml += `  <url>\n`;
-            xml += `    <loc>${escapeXml(`${baseUrl}/algorithms/${algorithm.uuid}`)}</loc>\n`;
+            xml += `    <loc>${escapeXml(`${baseUrl}/algorithms/${slug}`)}</loc>\n`;
             xml += `    <lastmod>${algorithm.updatedAt.toISOString()}</lastmod>\n`;
             xml += `    <changefreq>weekly</changefreq>\n`;
             xml += `    <priority>0.7</priority>\n`;

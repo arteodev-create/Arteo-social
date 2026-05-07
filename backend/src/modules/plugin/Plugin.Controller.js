@@ -1,9 +1,28 @@
 const asyncHandler = require('../../middleware/AsyncHandler');
 const PluginService = require('./Plugin.Service');
 const TransformUtils = require('../../utils/Transform.Utils');
+const SocketService = require('../../infra/socket/Socket.Service');
 
 // Validation
 const { createPluginSchema, updatePluginSchema } = require('./Plugin.Validation');
+
+const emitPluginChange = ({ userId, action, plugin, previousIsPublic = false }) => {
+    const payload = {
+        action,
+        uuid: plugin?.uuid,
+        userId,
+        isPublic: Boolean(plugin?.isPublic),
+        installedFromId: plugin?.installedFromId || null
+    };
+
+    SocketService.emitToUser(userId, 'PLUGIN_UPDATED', payload);
+    SocketService.emitToUser(userId, 'plugin_updated', payload);
+
+    if (payload.isPublic || previousIsPublic) {
+        SocketService.emitToOthers(userId, 'PLUGIN_UPDATED', payload);
+        SocketService.emitToOthers(userId, 'plugin_updated', payload);
+    }
+};
 
 /**
  * Plugin Controller
@@ -34,8 +53,8 @@ class PluginController {
      * Retrieves a detailed extension definition by UUID.
      */
     getById = asyncHandler(async (req, res) => {
-        const { uuid } = req.params;
-        const plugin = await PluginService.getById(uuid, req.user?.uuid);
+        const identifier = req.params.identifier || req.params.uuid;
+        const plugin = await PluginService.getById(identifier, req.user?.uuid);
         res.success({ plugin: TransformUtils.formatPlugin(plugin) });
     });
 
@@ -45,18 +64,20 @@ class PluginController {
     create = asyncHandler(async (req, res) => {
         const validated = createPluginSchema.parse(req.body);
         const plugin = await PluginService.create(req.user.uuid, validated);
+        emitPluginChange({ userId: req.user.uuid, action: 'create', plugin });
         res.created({ plugin: TransformUtils.formatPlugin(plugin) }, { message: 'Extension established successfully.' });
     });
 
     install = asyncHandler(async (req, res) => {
         const { uuid } = req.params;
         const plugin = await PluginService.install(uuid, req.user.uuid);
-        res.created({ plugin: TransformUtils.formatPlugin(plugin) }, { message: 'Plugin installed to your Arteo Library.' });
+        emitPluginChange({ userId: req.user.uuid, action: 'install', plugin });
+        res.created({ plugin: TransformUtils.formatPlugin(plugin) }, { message: 'Plugin downloaded to your Arteo Library.' });
     });
 
     download = asyncHandler(async (req, res) => {
-        const { uuid } = req.params;
-        const file = await PluginService.download(uuid, req.user?.uuid);
+        const identifier = req.params.identifier || req.params.uuid;
+        const file = await PluginService.download(identifier, req.user?.uuid);
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
         res.send(file.content);
@@ -64,7 +85,9 @@ class PluginController {
 
     uninstall = asyncHandler(async (req, res) => {
         const { uuid } = req.params;
+        const plugin = await PluginService.getById(uuid, req.user.uuid);
         await PluginService.uninstall(uuid, req.user.uuid);
+        emitPluginChange({ userId: req.user.uuid, action: 'uninstall', plugin, previousIsPublic: Boolean(plugin?.isPublic) });
         res.success(null, { message: 'Plugin removed from your Arteo Library.' });
     });
 
@@ -74,7 +97,9 @@ class PluginController {
     update = asyncHandler(async (req, res) => {
         const validated = updatePluginSchema.parse(req.body);
         const { uuid } = req.params;
+        const previous = await PluginService.getById(uuid, req.user.uuid);
         const updated = await PluginService.update(uuid, req.user.uuid, validated);
+        emitPluginChange({ userId: req.user.uuid, action: 'update', plugin: updated, previousIsPublic: Boolean(previous?.isPublic) });
         res.success({ plugin: TransformUtils.formatPlugin(updated) }, { message: 'Extension definition rotated.' });
     });
 
@@ -83,7 +108,9 @@ class PluginController {
      */
     delete = asyncHandler(async (req, res) => {
         const { uuid } = req.params;
+        const plugin = await PluginService.getById(uuid, req.user.uuid);
         await PluginService.delete(uuid, req.user.uuid);
+        emitPluginChange({ userId: req.user.uuid, action: 'delete', plugin, previousIsPublic: Boolean(plugin?.isPublic) });
         res.success(null, { message: 'Extension purged successfully.' });
     });
 }

@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { jwt: jwtConfig } = require('../../config');
+const { buildHandle } = require('../../modules/identity/IdentityHandle');
 
 /**
  * TokenEngine
@@ -15,6 +16,8 @@ class TokenEngine {
         const payload = {
             uuid: user.uuid,
             sub: user.username,
+            domain: user.identityDomain,
+            handle: buildHandle(user.username, user.identityDomain),
             sid: sessionId
         };
 
